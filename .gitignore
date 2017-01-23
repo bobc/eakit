@@ -31,3 +31,9 @@
 # Debug files
 *.dSYM/
 *.su
+
+*.bak
+
+bin/
+obj/
+.vs/

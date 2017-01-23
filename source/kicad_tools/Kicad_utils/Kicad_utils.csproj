@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{E06099B1-4B65-4AC4-9723-72021865E9D0}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Kicad_utils</RootNamespace>
+    <AssemblyName>Kicad_utils</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTK.1.1.2349.61993\lib\NET40\OpenTK.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Common\FontAttributes.cs" />
+    <Compile Include="Common\LayerDescriptor.cs" />
+    <Compile Include="Drawing\Canvas.cs" />
+    <Compile Include="ModuleDef\Drill.cs" />
+    <Compile Include="ModuleDef\fp_arc.cs" />
+    <Compile Include="ModuleDef\fp_circle.cs" />
+    <Compile Include="ModuleDef\fp_curve.cs" />
+    <Compile Include="ModuleDef\fp_line.cs" />
+    <Compile Include="ModuleDef\fp_polygon.cs" />
+    <Compile Include="ModuleDef\fp_shape.cs" />
+    <Compile Include="ModuleDef\fp_text.cs" />
+    <Compile Include="ModuleDef\model.cs" />
+    <Compile Include="ModuleDef\pad.cs" />
+    <Compile Include="ModuleDef\Position.cs" />
+    <Compile Include="Pcb\dimension.cs" />
+    <Compile Include="Pcb\General.cs" />
+    <Compile Include="Pcb\graphic_base.cs" />
+    <Compile Include="Pcb\gr_arc.cs" />
+    <Compile Include="Pcb\gr_line.cs" />
+    <Compile Include="Pcb\gr_text.cs" />
+    <Compile Include="Pcb\kicad_pcb.cs" />
+    <Compile Include="Common\Layer.cs" />
+    <Compile Include="ModuleDef\LibModule.cs" />
+    <Compile Include="Pcb\Net.cs" />
+    <Compile Include="Pcb\NetClass.cs" />
+    <Compile Include="Pcb\PcbLayer.cs" />
+    <Compile Include="Pcb\PcbPlotParams.cs" />
+    <Compile Include="Pcb\PcbSegment.cs" />
+    <Compile Include="Pcb\Setup.cs" />
+    <Compile Include="Pcb\Via.cs" />
+    <Compile Include="Project\FootprintTable.cs" />
+    <Compile Include="Project\Item.cs" />
+    <Compile Include="Project\KicadProject.cs" />
+    <Compile Include="Project\LibEntry.cs" />
+    <Compile Include="Project\Section.cs" />
+    <Compile Include="Schema\AlternateRef.cs" />
+    <Compile Include="Schema\ComponentBase.cs" />
+    <Compile Include="Schema\ComponentLink.cs" />
+    <Compile Include="Schema\ComponentNetlist.cs" />
+    <Compile Include="Schema\Field.cs" />
+    <Compile Include="Schema\LegacyComponent.cs" />
+    <Compile Include="Schema\LegacyField.cs" />
+    <Compile Include="Schema\LibrarySpec.cs" />
+    <Compile Include="Schema\NetList.cs" />
+    <Compile Include="Schema\NetListDesign.cs" />
+    <Compile Include="Schema\PartSpecifier.cs" />
+    <Compile Include="Schema\SchematicLegacy.cs" />
+    <Compile Include="Schema\sch_item_base.cs" />
+    <Compile Include="Schema\sch_Junction.cs" />
+    <Compile Include="Schema\sch_NoConnect.cs" />
+    <Compile Include="Schema\sch_text.cs" />
+    <Compile Include="Schema\sch_wire.cs" />
+    <Compile Include="Schema\Sheet.cs" />
+    <Compile Include="Schema\SheetLegacy.cs" />
+    <Compile Include="Schema\SheetPath.cs" />
+    <Compile Include="Schema\SheetSpecLegacy.cs" />
+    <Compile Include="Schema\TextFormat.cs" />
+    <Compile Include="Symbol\Extent.cs" />
+    <Compile Include="Symbol\LibSymbolLegacy.cs" />
+    <Compile Include="ModuleDef\Module.cs" />
+    <Compile Include="Symbol\Symbol.cs" />
+    <Compile Include="Common\TextEffects.cs" />
+    <Compile Include="Common\Utils.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Symbol\SymbolField.cs" />
+    <Compile Include="Symbol\sym_arc.cs" />
+    <Compile Include="Symbol\sym_bezier.cs" />
+    <Compile Include="Symbol\sym_circle.cs" />
+    <Compile Include="Symbol\sym_drawing_base.cs" />
+    <Compile Include="Symbol\sym_pin.cs" />
+    <Compile Include="Symbol\sym_polygon.cs" />
+    <Compile Include="Symbol\sym_rectangle.cs" />
+    <Compile Include="Symbol\sym_text.cs" />
+    <Compile Include="Symbol\TextBase.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cad2D\Cad2D.csproj">
+      <Project>{f088cf88-e199-4d0f-b1ad-c0b4980228d3}</Project>
+      <Name>Cad2D</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CadCommon\CadCommon.csproj">
+      <Project>{5d681129-1c10-4711-8f93-e75deb6688b0}</Project>
+      <Name>CadCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Lexing\Lexing.csproj">
+      <Project>{c263d6a1-8e5e-44b1-80e3-d635ef8023c3}</Project>
+      <Name>Lexing</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RMC\RMC.csproj">
+      <Project>{a729b4d7-858b-4675-a07f-bf4d38260caf}</Project>
+      <Name>RMC</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SExpression\SExpressions.csproj">
+      <Project>{3B74B2B9-AB95-4BCE-9044-B02DBD77175B}</Project>
+      <Name>SExpressions</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
