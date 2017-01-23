@@ -1,0 +1,3 @@
+[submodule "source/kicad_tools/LibTessDotNet"]
+	path = source/kicad_tools/LibTessDotNet
+	url = https://github.com/speps/LibTessDotNet
