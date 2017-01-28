@@ -26,6 +26,7 @@ namespace EagleImporter
         const string AppCaption = "KiCad to EAGLE Importer";
         string AppDataFolder;
         AppSettings AppSettings;
+        string version = "0.1";
 
         public Form1()
         {
@@ -43,6 +44,7 @@ namespace EagleImporter
             textBoxSource.Text = AppSettings.SourceFilename;
             textBoxDest.Text = AppSettings.DestFolder;
 
+            this.Text = AppCaption + " v" + version;
             comboBoxKicadVersion.SelectedIndex = 0;
         }
 
@@ -88,6 +90,7 @@ namespace EagleImporter
 
         private void buttonChooseDest_Click(object sender, EventArgs e)
         {
+            folderBrowserDialog1.SelectedPath = textBoxDest.Text;
             if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
                 textBoxDest.Text = folderBrowserDialog1.SelectedPath;
@@ -101,6 +104,7 @@ namespace EagleImporter
         {
             textBoxTrace.AppendText(message + Environment.NewLine);
         }
+
 
         //
         bool MakeBackupFile (string Filename, string BackupExt)
@@ -192,6 +196,10 @@ namespace EagleImporter
 
         private void btnImportEagle_Click(object sender, EventArgs e)
         {
+            //
+           // GenTestData.GenerateData();
+
+            //
             AppSettings.SourceFilename = textBoxSource.Text;
             AppSettings.DestFolder = textBoxDest.Text;
             SaveAppSettings();
@@ -227,8 +235,11 @@ namespace EagleImporter
             }
 
             EagleUtils utils = new EagleUtils();
-            utils.OnTrace += Trace;
-            utils.ImportFromEagle(textBoxSource.Text, textBoxDest.Text);
+            if (utils.CheckValid(textBoxSource.Text))
+            { 
+                utils.OnTrace += Trace;
+                utils.ImportFromEagle(textBoxSource.Text, textBoxDest.Text);
+            }
         }
 
     }
