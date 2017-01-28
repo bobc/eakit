@@ -17,15 +17,7 @@ del %zzzname%.zip
 echo Calculating sum..
 CertUtil -hashfile %zzzname%.zip SHA256 >hash.txt
 
-
-
-
 set zip=
 set zzzname=
 set flags=
-
-
-
-
-
  
