@@ -48,35 +48,38 @@ namespace SExpressions
 
         public override void Output(List<string> lines, int depth)
         {
-            //TODO; string containing " or \n
+            //TODO; string containing '\n'
 
-            if (String.IsNullOrEmpty(Value))
-                lines.Add("\"\"");
-            else if (NeedsQuoting(Value))
-                lines.Add("\"" + Value + "\"");
-            else
-                lines.Add(Value);
+            lines.Add(EscapedValue());
         }
 
-        // quoting?
+        // for debug display
         public override string ToString()
         {
             return EscapedValue();
         }
 
-        public string EscapedValue()
+        // get escaped and quoted representation
+        private string EscapedValue()
         {
             if (String.IsNullOrEmpty(Value))
                 return "\"\"";
-            else if (NeedsQuoting(Value))
+
+            if (Value.IndexOfAny(new char[] { '"' }) >= 0)
+            {
+                // replace " with \"
+                Value = Value.Replace("\"", "\\\"");
+            }
+
+            if (NeedsQuoting(Value))
                 return "\"" + Value + "\"";
             else
                 return Value;
         }
 
-        public static bool NeedsQuoting(string Value)
+        private bool NeedsQuoting(string Value)
         {
-            return (Value.IndexOfAny(new char[] { '#', ' ', '\t', '(', ')', '%', '{', '}', }) >= 0)
+            return (Value.IndexOfAny(new char[] { '#', ' ', '\t', '(', ')', '%', '{', '}' }) >= 0)
                 || (Value.IndexOf("-") > 0)
                 ;
         }
