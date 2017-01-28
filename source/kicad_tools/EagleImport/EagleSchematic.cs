@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using System.Xml.Serialization;
 using System.IO;
 
-namespace EagleImport.Schematic
+namespace EagleImport
 {
     [XmlRoot(ElementName = "eagle")]
     public class EagleSchematic
@@ -17,7 +13,6 @@ namespace EagleImport.Schematic
 
         [XmlAttribute(AttributeName = "version")]
         public string Version { get; set; }
-
 
         public static EagleSchematic LoadFromXmlFile(string FileName)
         {
