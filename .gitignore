@@ -21,7 +21,7 @@
 *.dylib
 
 # Executables
-*.exe
+
 *.out
 *.app
 *.i*86
@@ -33,6 +33,7 @@
 *.su
 
 *.bak
+&.suo
 
 bin/
 obj/
