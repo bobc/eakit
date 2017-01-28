@@ -40,9 +40,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DesignRules.cs" />
+    <Compile Include="EagleFile.cs" />
+    <Compile Include="EagleSchematic.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Schematic\EagleSchematic.cs" />
-    <Compile Include="Schematic\SchematicObjects.cs" />
+    <Compile Include="XMLObjects.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
