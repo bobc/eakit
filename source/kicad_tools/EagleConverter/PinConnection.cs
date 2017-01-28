@@ -7,7 +7,7 @@ using System.Drawing;
 
 using EagleImport;
 
-namespace EagleImporter
+namespace EagleConverter
 {
     public class PinConnection
     {

@@ -9,12 +9,7 @@ using System.Windows.Forms;
 
 using System.IO;
 
-using SExpressions;
-
-using Kicad_utils;
-using Kicad_utils.Pcb;
-using Kicad_utils.ModuleDef;
-
+using EagleConverter;
 using RMC;
 
 namespace EagleImporter
@@ -45,6 +40,8 @@ namespace EagleImporter
             textBoxDest.Text = AppSettings.DestFolder;
 
             this.Text = AppCaption + " v" + version;
+
+            comboBoxKicadVersion.Items.Add("4.0.x");
             comboBoxKicadVersion.SelectedIndex = 0;
         }
 
@@ -128,71 +125,6 @@ namespace EagleImporter
         }
 
 
-        bool FindSegment (kicad_pcb pcb, PointF pos)
-        {
-            return false;
-        }
-
-        void ProcessPcb_ViaToModule(string Filename)
-        {
-            //bool ref_pos_offset = false;
-
-            kicad_pcb pcb = new kicad_pcb();
-
-            pcb.LoadFromFile(Filename);
-
-            SNodeBase pcb_node = pcb.RootNode;
-            SExpression pcb_items = (pcb_node as SExpression);
-
-            int via_number = 1;
-
-            for (int index = 0; index < pcb_items.Items.Count; index++)
-            {
-                SExpression node = pcb_items.Items[index] as SExpression;
-
-                if (node.Name == "via")
-                {
-                    Via via = Via.Parse(node);
-
-                    if ( (via.net == 0)) // && !FindSegment (pcb, via.at)
-                    {
-                        Module module = new Module();
-                        module.Name = "main:via";
-                        module.layer = "Top";
-                        module.tedit = via.tstamp;
-                        module.tstamp = via.tstamp;
-                        module.At = via.at;
-                        module.attr = "virtual";
-                        module.Reference = new fp_text("reference", "V" + via_number, new PointF(0, 1.5f), "F.SilkS", new SizeF(1, 1), 0.15f, false);
-                        module.Value = new fp_text("value", "via", new PointF(0, -1), "F.Fab", new SizeF(1, 1), 0.15f, false);
-
-                        pad pad = new pad("1", "thru_hole", "circle", new PointF(0, 0), new SizeF(0.7f, 07f), 0.3f, "*.Cu");
-                        pad.net = new Net(1, "GND");
-                        pad.zone_connect = 2;
-                        module.Pads = new List<pad>();
-                        module.Pads.Add(pad);
-
-                        pcb_items.Items[index] = module.GetSExpression(true);
-
-                        via_number++;
-                    }
-                }
-                else if (node.Name == "module")
-                {
-                    Module module = Module.Parse(node);
-
-                    if (module.Name == "main:via")
-                    {
-                        module.Pads[0].zone_connect = 2;
-                        pcb_items.Items[index] = module.GetSExpression(true);
-                    }
-                }
-            }
-
-            MakeBackupFile(Filename, "$");
-
-            pcb.RootNode.WriteToFile(Filename);
-        }
 
         private void btnImportEagle_Click(object sender, EventArgs e)
         {

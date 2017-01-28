@@ -14,7 +14,7 @@ using EagleImport;
 using k = Kicad_utils;
 using Kicad_utils.Schema;
 
-namespace EagleImporter
+namespace EagleConverter
 {
     public class EagleUtils
     {

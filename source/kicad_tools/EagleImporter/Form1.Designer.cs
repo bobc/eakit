@@ -153,8 +153,6 @@
             // 
             this.comboBoxKicadVersion.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxKicadVersion.FormattingEnabled = true;
-            this.comboBoxKicadVersion.Items.AddRange(new object[] {
-            "v4.0.x"});
             this.comboBoxKicadVersion.Location = new System.Drawing.Point(654, 138);
             this.comboBoxKicadVersion.Name = "comboBoxKicadVersion";
             this.comboBoxKicadVersion.Size = new System.Drawing.Size(121, 24);

@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lexing", "Lexing\Lexing.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibTessDotNet", "LibTessDotNet\LibTessDotNet\LibTessDotNet.csproj", "{5EE39029-873A-45A0-9259-2198BF8729F4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EagleConverter", "EagleConverter\EagleConverter.csproj", "{9A30DC99-90C1-4994-B224-3EEF03CCBADC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -271,6 +273,30 @@ Global
 		{5EE39029-873A-45A0-9259-2198BF8729F4}.ReleaseDouble|Mixed Platforms.Build.0 = ReleaseDouble|Any CPU
 		{5EE39029-873A-45A0-9259-2198BF8729F4}.ReleaseDouble|x86.ActiveCfg = ReleaseDouble|Any CPU
 		{5EE39029-873A-45A0-9259-2198BF8729F4}.ReleaseDouble|x86.Build.0 = ReleaseDouble|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Debug|x86.Build.0 = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.DebugDouble|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.DebugDouble|Any CPU.Build.0 = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.DebugDouble|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.DebugDouble|Mixed Platforms.Build.0 = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.DebugDouble|x86.ActiveCfg = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.DebugDouble|x86.Build.0 = Debug|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Release|x86.ActiveCfg = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.Release|x86.Build.0 = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.ReleaseDouble|Any CPU.ActiveCfg = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.ReleaseDouble|Any CPU.Build.0 = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.ReleaseDouble|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.ReleaseDouble|Mixed Platforms.Build.0 = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.ReleaseDouble|x86.ActiveCfg = Release|Any CPU
+		{9A30DC99-90C1-4994-B224-3EEF03CCBADC}.ReleaseDouble|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
