@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<asmv1:assembly xsi:schemaLocation="urn:schemas-microsoft-com:asm.v1 assembly.adaptive.xsd" manifestVersion="1.0" xmlns:asmv1="urn:schemas-microsoft-com:asm.v1" xmlns="urn:schemas-microsoft-com:asm.v2" xmlns:asmv2="urn:schemas-microsoft-com:asm.v2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:co.v1="urn:schemas-microsoft-com:clickonce.v1" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3" xmlns:dsig="http://www.w3.org/2000/09/xmldsig#" xmlns:co.v2="urn:schemas-microsoft-com:clickonce.v2">
+  <asmv1:assemblyIdentity name="EagleImporter.exe" version="0.1.0.1" publicKeyToken="8a9e30fe19bb0976" language="neutral" processorArchitecture="msil" type="win32" />
+  <application />
+  <entryPoint>
+    <assemblyIdentity name="EagleImporter" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+    <commandLine file="EagleImporter.exe" parameters="" />
+  </entryPoint>
+  <trustInfo>
+    <security>
+      <applicationRequestMinimum>
+        <PermissionSet Unrestricted="true" ID="Custom" SameSite="site" />
+        <defaultAssemblyRequest permissionSetReference="Custom" />
+      </applicationRequestMinimum>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <!--
+          UAC Manifest Options
+          If you want to change the Windows User Account Control level replace the 
+          requestedExecutionLevel node with one of the following.
+
+        <requestedExecutionLevel  level="asInvoker" uiAccess="false" />
+        <requestedExecutionLevel  level="requireAdministrator" uiAccess="false" />
+        <requestedExecutionLevel  level="highestAvailable" uiAccess="false" />
+
+         If you want to utilize File and Registry Virtualization for backward 
+         compatibility then delete the requestedExecutionLevel node.
+    -->
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <dependency>
+    <dependentOS>
+      <osVersionInfo>
+        <os majorVersion="5" minorVersion="1" buildNumber="2600" servicePackMajor="0" />
+      </osVersionInfo>
+    </dependentOS>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="preRequisite" allowDelayedBinding="true">
+      <assemblyIdentity name="Microsoft.Windows.CommonLanguageRuntime" version="4.0.30319.0" />
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="Cad2D.dll" size="21504">
+      <assemblyIdentity name="Cad2D" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>pSUtKoDwm7hox/Va4USegRS751Q=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="CadCommon.dll" size="30208">
+      <assemblyIdentity name="CadCommon" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>G+L7YKfh9z8wPDsA2dva5tIMPKM=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="CParser.dll" size="10752">
+      <assemblyIdentity name="CParser" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>NgzSrsgnttK5tnXCxlNr4/KQOuI=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="EagleImport.dll" size="57856">
+      <assemblyIdentity name="EagleImport" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>41HzHPPgPAUJAVJ/PaFlGWErIOI=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="EagleImporter.exe" size="62848">
+      <assemblyIdentity name="EagleImporter" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>6jDqIIzwHrwJkR6vwmOiqyQneBM=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="Kicad_utils.dll" size="107008">
+      <assemblyIdentity name="Kicad_utils" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>rL51NREe/Ugi/v4VOPiovaqMzII=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="Lexing.dll" size="15872">
+      <assemblyIdentity name="Lexing" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>5eNfFyGf0iNJiIppZMLBZXNRW4E=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="LibTessDotNet.dll" size="38400">
+      <assemblyIdentity name="LibTessDotNet" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>Swh+FZEuzVV+37IDjn18QriDkz4=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="OpenTK.dll" size="3424256">
+      <assemblyIdentity name="OpenTK" version="1.1.0.0" publicKeyToken="BAD199FE84EB3DF4" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>J57DfIb2oscjYfeWZu3k/ly06Lg=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="RMC.dll" size="41984">
+      <assemblyIdentity name="RMC" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>SG8cg6Z/bGlknAogofQyJr4JO/g=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <dependency>
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="SExpressions.dll" size="12288">
+      <assemblyIdentity name="SExpressions" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
+      <hash>
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+        <dsig:DigestValue>MV2k7x4MAVYe2UeTfwYigixMBHw=</dsig:DigestValue>
+      </hash>
+    </dependentAssembly>
+  </dependency>
+  <file name="EagleImporter.exe.config" size="184">
+    <hash>
+      <dsig:Transforms>
+        <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+      </dsig:Transforms>
+      <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+      <dsig:DigestValue>06MAsbgFUGlKhu1U3KJ4fh8CRLU=</dsig:DigestValue>
+    </hash>
+  </file>
+<publisherIdentity name="CN=ZARQUON\bob" issuerKeyHash="fc625c6f7b0587a007e8542aa38c00e6afc5b643" /><Signature Id="StrongNameSignature" xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" /><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" /><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" /><Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" /></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" /><DigestValue>zX06k6GdLNRrGe2LCutyCWDCpk4=</DigestValue></Reference></SignedInfo><SignatureValue>ksuVfyDjHyPkIKHMJTToo8PlVMf5B5xlCfKjNczL4uMdOvsrWa03iFUoDi1hjwa4MWxqhVVEDGJcX3dxDHY0Cp2e3tbHyf2JPtCaFHrdWkUvAbRgFCxDSt/nsTWLY3nF9i+O6GU26fmQKzy0HVxdUcyFIjW0hdDmM8RWl8e8l5A=</SignatureValue><KeyInfo Id="StrongNameKeyInfo"><KeyValue><RSAKeyValue><Modulus>wj0onPIJXKPmqm0PPROTBZ+MtY3U0LWl7bYlFGB1MDzsL07pLshWi0Pfw0ffDTgQWgcuKWVHzyDg5tUvMtslqGK+nkccDN6UVRQBT81LVyOTCPeYuTAbBwpBZxR6W8XmiALzreFX6GbpIo+eT3IN/0lkSN9yGHAnFhPb+xHE3x0=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><msrel:RelData xmlns:msrel="http://schemas.microsoft.com/windows/rel/2005/reldata"><r:license xmlns:r="urn:mpeg:mpeg21:2003:01-REL-R-NS" xmlns:as="http://schemas.microsoft.com/windows/pki/2005/Authenticode"><r:grant><as:ManifestInformation Hash="4ea6c2600972eb0a8bed196bd42c9da1933a7dcd" Description="" Url=""><as:assemblyIdentity name="EagleImporter.exe" version="0.1.0.1" publicKeyToken="8a9e30fe19bb0976" language="neutral" processorArchitecture="msil" type="win32" /></as:ManifestInformation><as:SignedBy /><as:AuthenticodePublisher><as:X509SubjectName>CN=ZARQUON\bob</as:X509SubjectName></as:AuthenticodePublisher></r:grant><r:issuer><Signature Id="AuthenticodeSignature" xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" /><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" /><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" /><Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" /></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" /><DigestValue>ExW0NSZL5KTPD1DZxocUMpefb+Y=</DigestValue></Reference></SignedInfo><SignatureValue>tkSCRZIz+jS1tqFqlTVV+hFSxGjGzV3Qfh87F5A6RpH+qrlR6fbR+V70A0srdLimgaYsvGBkjnYaEUJLUJc4pZ3NQTBkSZfasElc3Tblym/E3YasmtdRw+pA0W6NkWvEIH5LhYeChgR8OnCjdDNpRPnJuItN5Rt+UosKnEDA+fc=</SignatureValue><KeyInfo><KeyValue><RSAKeyValue><Modulus>wj0onPIJXKPmqm0PPROTBZ+MtY3U0LWl7bYlFGB1MDzsL07pLshWi0Pfw0ffDTgQWgcuKWVHzyDg5tUvMtslqGK+nkccDN6UVRQBT81LVyOTCPeYuTAbBwpBZxR6W8XmiALzreFX6GbpIo+eT3IN/0lkSN9yGHAnFhPb+xHE3x0=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>MIIBxTCCAS6gAwIBAgIQeIMv349G0KNMurPmjEspNjANBgkqhkiG9w0BAQUFADAhMR8wHQYDVQQDHhYAWgBBAFIAUQBVAE8ATgBcAGIAbwBiMB4XDTE3MDEyNjAxMDg1MVoXDTE4MDEyNjA3MDg1MVowITEfMB0GA1UEAx4WAFoAQQBSAFEAVQBPAE4AXABiAG8AYjCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAwj0onPIJXKPmqm0PPROTBZ+MtY3U0LWl7bYlFGB1MDzsL07pLshWi0Pfw0ffDTgQWgcuKWVHzyDg5tUvMtslqGK+nkccDN6UVRQBT81LVyOTCPeYuTAbBwpBZxR6W8XmiALzreFX6GbpIo+eT3IN/0lkSN9yGHAnFhPb+xHE3x0CAwEAATANBgkqhkiG9w0BAQUFAAOBgQCH6TCVpYNMK2jGvFSx/+Tb5Jtf37vFPIw8HdDtTjVr45dLlWG7zmrLE4d1J6IlBvGrI/zALXnp8mFwRLpZPZUEcDeyzE29gXUGsPRX28RiZaVIGiDgB2x84b67mBZQxR1GVtFsGoyMvXJTwg8DjUM0WylJMYkJ0dxstsw1KXmz+w==</X509Certificate></X509Data></KeyInfo></Signature></r:issuer></r:license></msrel:RelData></KeyInfo></Signature></asmv1:assembly>
