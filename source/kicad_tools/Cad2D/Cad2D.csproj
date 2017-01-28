@@ -61,6 +61,7 @@
     <Compile Include="Polygon_Triangulator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Triangle.cs" />
+    <Compile Include="VectorExt.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

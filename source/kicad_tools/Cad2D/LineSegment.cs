@@ -64,12 +64,6 @@ namespace Cad2D
             EndPos += v;
         }
 
-#if TODO
-        public void Turn(float alpha)
-        {
-            EndPos = Vector2.Transform(ToVector2(), Matrix.CreateRotationZ(alpha)) + StartPos;
-        }
-
         public void Forward(float distance)
         {
             Translate(Vector2.Normalize(EndPos - StartPos) * distance);
@@ -81,14 +75,30 @@ namespace Cad2D
             Translate(new Vector2(-n.Y * distance, n.X * distance));
         }
 
+        public bool Contains(Vector2 p)
+        {
+            return GeometryHelper.IsPointOnLine(this, p) == GeometryHelper.PointOnLineStates.PointIsOnTheSegment;
+        }
+
+        public GeometryHelper.LineIntersectionStates Intersects(LineSegment l2)
+        {
+            return GeometryHelper.LinesIntersect(this, l2, true, true);
+        }
+
+
+        public float Distance(Vector2 p)
+        {
+            return GeometryHelper.GetLineToPointDistance(StartPos, EndPos, p);
+        }
+
         public float Length()
         {
-            return ToVector2().Length();
+            return ToVector2().Length;
         }
 
         public float LengthSquared()
         {
-            return ToVector2().LengthSquared();
+            return ToVector2().LengthSquared;
         }
 
         public Vector2 ToVector2()
@@ -101,6 +111,13 @@ namespace Cad2D
             return GeometryHelper.GetIntersectionPoint(this, l2);
         }
 
+#if TODO
+        public void Turn(float alpha)
+        {
+            EndPos = Vector2.Transform(ToVector2(), Matrix.CreateRotationZ(alpha)) + StartPos;
+        }
+#endif
+
 #if GFX
         public void Draw(SpriteBatch sb, LineBrush lb, Color color)
         {
@@ -112,20 +129,7 @@ namespace Cad2D
             lb.Draw(sb, StartPos + offset, EndPos + offset, color);
         }
 #endif
-        public bool Contains(Vector2 p)
-        {
-            return GeometryHelper.IsPointOnLine(this, p) == GeometryHelper.PointOnLineStates.PointIsOnTheSegment;
-        }
 
-        public GeometryHelper.LineIntersectionStates Intersects(LineSegment l2)
-        {
-            return GeometryHelper.LinesIntersect(this, l2, true, true);
-        }
 
-        public float Distance(Vector2 p)
-        {
-            return GeometryHelper.GetLineToPointDistance(StartPos, EndPos, p);
-        }
-#endif
     }
 }

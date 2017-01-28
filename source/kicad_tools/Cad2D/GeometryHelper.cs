@@ -17,6 +17,21 @@ namespace Cad2D
 
     public static class GeometryHelper
     {
+        public enum LineIntersectionStates
+        {
+            Intersect,
+            Overlap,
+            None
+        }
+
+        public enum PointOnLineStates
+        {
+            PointIsNotOnTheInfiniteLine,
+            PointIsNotOnTheOpenRayP,
+            PointIsOnTheSegment,
+            PointIsNotOnTheOpenRayQ
+        }
+
 #if WINDOWS
         public static Point GetMousePosition()
         {
@@ -63,6 +78,7 @@ namespace Cad2D
         {
             return GetIntersectionPoint(firstLine, secondLine, true, true);
         }
+
         public static Vector2 GetIntersectionPoint(LineSegment firstLine, LineSegment secondLine, bool firstSegment, bool secondSegment)
         {
             double Ua, Ub;
@@ -94,13 +110,7 @@ namespace Cad2D
             }
         }
 
-#if TODO
-        public enum LineIntersectionStates
-        {
-            Intersect,
-            Overlap,
-            None
-        }
+
         public static LineIntersectionStates LinesIntersect(LineSegment firstLine, LineSegment secondLine, bool firstSegment, bool secondSegment)
         {
             var ip = GetIntersectionPoint(firstLine, secondLine, firstSegment, secondSegment);
@@ -121,15 +131,44 @@ namespace Cad2D
         {
             return GetShortestVectorToLine(line, p, true);
         }
+
         public static Vector2 GetShortestVectorToLine(LineSegment line, Vector2 p, bool segment)
         {
-            var u = ((p.X - line.StartPos.X) * (line.EndPos.X - line.StartPos.X) + (p.Y - line.StartPos.Y) * (line.EndPos.Y - line.StartPos.Y)) / line.LengthSquared();
+            var u = ((p.X - line.StartPos.X) * (line.EndPos.X - line.StartPos.X) + 
+                     (p.Y - line.StartPos.Y) * (line.EndPos.Y - line.StartPos.Y)   ) / line.LengthSquared();
             if (!segment || (u >= 0 && u <= 1))
                 return new Vector2(
                     line.StartPos.X + u * (line.EndPos.X - line.StartPos.X),
                     line.StartPos.Y + u * (line.EndPos.Y - line.StartPos.Y));
             else
                 return new Vector2(float.NaN);
+        }
+
+        public static Vector2 GetNearestPointInSegmentToPoint (Vector2 A, Vector2 B, Vector2 p)
+        {
+            //get the normalized line segment vector
+            Vector2 v = B - A;
+            v.Normalize();
+
+            //determine the point on the line segment nearest to the point p
+            float distanceAlongLine = Vector2.Dot(p, v) - Vector2.Dot(A, v);
+            Vector2 nearestPoint;
+            if (distanceAlongLine < 0)
+            {
+                //closest point is A
+                nearestPoint = A;
+            }
+            else if (distanceAlongLine > Vector2Ext.Distance(A, B))
+            {
+                //closest point is B
+                nearestPoint = B;
+            }
+            else
+            {
+                //closest point is between A and B... A + d  * ( ||B-A|| )
+                nearestPoint = A + distanceAlongLine * v;
+            }
+            return nearestPoint;
         }
 
         //Credit: http://funplosion.com/devblog/collision-detection-line-vs-point-circle-and-rectangle.html
@@ -147,7 +186,7 @@ namespace Cad2D
                 //closest point is A
                 nearestPoint = A;
             }
-            else if (distanceAlongLine > Vector2.Distance(A, B))
+            else if (distanceAlongLine > Vector2Ext.Distance(A, B))
             {
                 //closest point is B
                 nearestPoint = B;
@@ -159,8 +198,33 @@ namespace Cad2D
             }
 
             //Calculate the distance between the two points
-            return Vector2.Distance(nearestPoint, p);
+            return Vector2Ext.Distance(nearestPoint, p);
         }
+
+
+
+        public static PointOnLineStates IsPointOnLine(LineSegment pq, Vector2 t)
+        {
+            return IsPointOnLine(ref pq.StartPos, ref pq.EndPos, ref t);
+        }
+
+        public static PointOnLineStates IsPointOnLine(Vector2 p, Vector2 q, Vector2 t)
+        {
+            return IsPointOnLine(ref p, ref q, ref t);
+        }
+
+        public static PointOnLineStates IsPointOnLine(ref Vector2 p, ref Vector2 q, ref Vector2 t)
+        {
+            if (Math.Abs((q.Y - p.Y) * (t.X - p.X) - (t.Y - p.Y) * (q.X - p.X)) >=
+                Math.Max(Math.Abs(q.X - p.X), Math.Abs(q.Y - p.Y))) return PointOnLineStates.PointIsNotOnTheInfiniteLine;
+            if ((q.X < p.X && p.X < t.X) || (q.Y < p.Y && p.Y < t.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayP;
+            if ((t.X < p.X && p.X < q.X) || (t.Y < p.Y && p.Y < q.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayP;
+            if ((p.X < q.X && q.X < t.X) || (p.Y < q.Y && q.Y < t.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayQ;
+            if ((t.X < q.X && q.X < p.X) || (t.Y < q.Y && q.Y < p.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayQ;
+            return PointOnLineStates.PointIsOnTheSegment;
+        }
+
+#if TODO
 
         public static bool RectCollidesWithCircle(Vector2 center, float radius, Rectangle rect)
         {
@@ -186,32 +250,6 @@ namespace Cad2D
             return new Vector2(x, y);
         }
 
-        public enum PointOnLineStates
-        {
-            PointIsNotOnTheInfiniteLine,
-            PointIsNotOnTheOpenRayP,
-            PointIsOnTheSegment,
-            PointIsNotOnTheOpenRayQ
-        }
-
-        public static PointOnLineStates IsPointOnLine(LineSegment pq, Vector2 t)
-        {
-            return IsPointOnLine(ref pq.StartPos, ref pq.EndPos, ref t);
-        }
-        public static PointOnLineStates IsPointOnLine(Vector2 p, Vector2 q, Vector2 t)
-        {
-            return IsPointOnLine(ref p, ref q, ref t);
-        }
-        public static PointOnLineStates IsPointOnLine(ref Vector2 p, ref Vector2 q, ref Vector2 t)
-        {
-            if (Math.Abs((q.Y - p.Y) * (t.X - p.X) - (t.Y - p.Y) * (q.X - p.X)) >=
-                Math.Max(Math.Abs(q.X - p.X), Math.Abs(q.Y - p.Y))) return PointOnLineStates.PointIsNotOnTheInfiniteLine;
-            if ((q.X < p.X && p.X < t.X) || (q.Y < p.Y && p.Y < t.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayP;
-            if ((t.X < p.X && p.X < q.X) || (t.Y < p.Y && p.Y < q.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayP;
-            if ((p.X < q.X && q.X < t.X) || (p.Y < q.Y && q.Y < t.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayQ;
-            if ((t.X < q.X && q.X < p.X) || (t.Y < q.Y && q.Y < p.Y)) return PointOnLineStates.PointIsNotOnTheOpenRayQ;
-            return PointOnLineStates.PointIsOnTheSegment;
-        }
 
         public static Rectangle MoveRectangle(Rectangle r, Point offset)
         {
