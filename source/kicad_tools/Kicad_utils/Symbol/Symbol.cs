@@ -23,9 +23,13 @@ namespace Kicad_utils.Symbol
         public int Offset;
         public bool ShowPinNumber;
         public bool ShowPinName;
-        public int NumParts = 1;
+        public int NumUnits = 1;
         public bool Locked = false;
         public bool PowerSymbol = false;
+
+        // units_locked : (Used only if unit_count > 1)
+        // = L (units are not identical and cannot be swapped) or 
+        // = F (units are identical and therefore can be swapped) 
 
         public SymbolField fReference = new SymbolField();
         public SymbolField fValue = new SymbolField();        // default value set to Name in library
@@ -55,7 +59,7 @@ namespace Kicad_utils.Symbol
         }
 
         public Symbol(string name, bool visible, string prefix, int offset, bool showPinNumber,
-            bool showPinName, int numParts, bool locked, bool powerSymbol)
+            bool showPinName, int numUnits, bool locked, bool powerSymbol)
         {
             this.Name = name;
             this.Visible = visible;
@@ -63,7 +67,7 @@ namespace Kicad_utils.Symbol
             this.Offset = offset;
             this.ShowPinNumber = showPinNumber;
             this.ShowPinName = showPinName;
-            this.NumParts = numParts;
+            this.NumUnits = numUnits;
             this.Locked = locked;
             this.PowerSymbol = powerSymbol;
         }
@@ -100,7 +104,7 @@ namespace Kicad_utils.Symbol
                 Offset,
                 ShowPinNumber ? "Y" : "N",
                 ShowPinName ? "Y" : "N",
-                NumParts,
+                NumUnits,
                 Locked ? "L" : "F",
                 PowerSymbol ? "P" : "N"));
 
@@ -170,7 +174,7 @@ namespace Kicad_utils.Symbol
             sym.Offset = tokens[4].IntValue;
             sym.ShowPinNumber = tokens[5].Value == "Y";
             sym.ShowPinName = tokens[6].Value == "Y";
-            sym.NumParts = tokens[7].IntValue;
+            sym.NumUnits = tokens[7].IntValue;
             sym.Locked = tokens[8].Value == "L";
             sym.PowerSymbol = tokens[9].Value == "P";
             index++;
@@ -335,6 +339,22 @@ namespace Kicad_utils.Symbol
 
             }
             return RectangleF.Empty;
+        }
+
+        public sym_pin FindPin (int unit, string name)
+        {
+            if (Drawings != null)
+            foreach (sym_drawing_base sym in Drawings)
+            {
+                if (sym is sym_pin)
+                {
+                    sym_pin pin = sym as sym_pin;
+
+                    if ( (pin.Unit == unit) && (pin.Name == name) )
+                        return pin;
+                }
+            }
+            return null;
         }
 
         public void CheckSymbol(bool Update = false)

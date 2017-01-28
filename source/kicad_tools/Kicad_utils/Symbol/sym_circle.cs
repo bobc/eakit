@@ -24,7 +24,7 @@ namespace Kicad_utils.Symbol
             result.Position.X = tokens[1].IntValue;
             result.Position.Y = tokens[2].IntValue;
             result.Radius = tokens[3].IntValue;
-            result.Part = tokens[4].IntValue;
+            result.Unit = tokens[4].IntValue;
             result.DeMorganAlternate = tokens[5].IntValue;
             result.PenSize = (float)tokens[6].GetValueAsDouble();
             result.Fill = sym_drawing_base.GetFillType(tokens[7].Value);
@@ -38,7 +38,7 @@ namespace Kicad_utils.Symbol
             return string.Format("C {0} {1} {2} {3} {4} {5} {6}",
                 Position.X, Position.Y,
                 Radius,
-                Part,
+                Unit,
                 DeMorganAlternate,
                 PenSize,
                 sym_drawing_base.FillTypeToString(Fill)

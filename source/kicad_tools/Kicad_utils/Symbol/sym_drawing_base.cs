@@ -9,8 +9,16 @@ namespace Kicad_utils.Symbol
 {
     public class sym_drawing_base
     {
-        public int Part = 0;
-        public int DeMorganAlternate = 1;
+        /// <summary>
+        /// 0 = common to all units
+        /// 1..n = applies to unit x
+        /// </summary>
+        public int Unit = 0;
+        /// <summary>
+        /// 0 = common to all representions
+        /// 1,2 applies to represention x
+        /// </summary>
+        public int DeMorganAlternate = 0;
 
         public float PenSize;
         public FillTypes Fill;

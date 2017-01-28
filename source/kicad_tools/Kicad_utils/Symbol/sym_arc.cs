@@ -23,6 +23,18 @@ namespace Kicad_utils.Symbol
         public sym_arc()
         { }
 
+        public sym_arc(int unit, float width, PointF position, float radius, float arcStart, float arcend, PointF start, PointF end)
+        {
+            Unit = unit;
+            PenSize = width;
+            Position = position;
+            Radius = radius;
+            ArcStart = arcStart;
+            ArcEnd = arcend;
+            Start = start;
+            End = end;
+        }
+
         public new static sym_arc Parse(List<Token> tokens)
         {
             sym_arc result = new sym_arc();
@@ -32,7 +44,7 @@ namespace Kicad_utils.Symbol
             result.Radius = tokens[3].IntValue;
             result.ArcStart = tokens[4].IntValue / 10f;
             result.ArcEnd = tokens[5].IntValue / 10f;
-            result.Part = tokens[6].IntValue;
+            result.Unit = tokens[6].IntValue;
             result.DeMorganAlternate = tokens[7].IntValue;
             result.PenSize = (float)tokens[8].GetValueAsDouble();
             result.Fill = sym_drawing_base.GetFillType(tokens[9].Value);
@@ -51,7 +63,7 @@ namespace Kicad_utils.Symbol
                 Position.X, Position.Y,
                 Radius,
                 (int)(ArcStart * 10), (int)(ArcEnd * 10),
-                Part,
+                Unit,
                 DeMorganAlternate,
                 PenSize,
                 sym_drawing_base.FillTypeToString(Fill),

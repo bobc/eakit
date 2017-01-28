@@ -26,6 +26,7 @@ namespace Kicad_utils.Schema
         // description
         public string PaperName;
         public SizeF PageSize;
+        public bool Portrait;
 
         public string Encoding;
         public int SheetNumber;
@@ -77,6 +78,7 @@ namespace Kicad_utils.Schema
             // description
             PaperName = "A4";
             PageSize = new SizeF(297*mm_to_mil, 210 * mm_to_mil);
+            Portrait = false;
 
             Encoding = "utf-8";
             SheetNumber = 1;
@@ -419,7 +421,11 @@ namespace Kicad_utils.Schema
             lines.Add("EELAYER END");
 
             //lines.Add("$Descr A4 11693 8268");
-            lines.Add(string.Format("$Descr {0} {1} {2}", PaperName, (int)Math.Round(PageSize.Width, MidpointRounding.AwayFromZero), (int)Math.Round(PageSize.Height, MidpointRounding.AwayFromZero)));
+            lines.Add(string.Format("$Descr {0} {1} {2}{3}", PaperName, 
+                (int)Math.Round(PageSize.Width, MidpointRounding.AwayFromZero), 
+                (int)Math.Round(PageSize.Height, MidpointRounding.AwayFromZero),
+                Portrait ? " portrait" : ""
+                ));
             lines.Add(string.Format("encoding {0}", Encoding));
             lines.Add(string.Format("Sheet {0} {1}", SheetNumber, SheetCount));
             lines.Add(string.Format("Title {0}", QuoteStr(Title)));

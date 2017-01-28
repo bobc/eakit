@@ -23,6 +23,9 @@ namespace Kicad_utils.Symbol
         public bool Italic; // I or N
         public bool Bold; // B or N
 
+        public bool xMirror;
+        public float xAngle;
+
         public TextBase()
         {
             Angle = 0f;

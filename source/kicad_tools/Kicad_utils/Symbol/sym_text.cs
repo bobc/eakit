@@ -30,11 +30,11 @@ namespace Kicad_utils.Symbol
             this.Text = new TextBase();
         }
 
-        public sym_text(string Value, float Angle, PointF Pos, float Size, bool Hidden,
+        public sym_text(int unit, string Value, float Angle, PointF Pos, float Size, bool Hidden,
             bool Italic, bool Bold, string HorizAlign, string VertAlign)
         {
-            this.Part = 1;
-            this.DeMorganAlternate = 1;
+            this.Unit = unit;
+            this.DeMorganAlternate = 0;
 
             this.Text = new TextBase();
             this.Text.Angle = Angle;
@@ -57,7 +57,7 @@ namespace Kicad_utils.Symbol
                 Text.Pos.X, Text.Pos.Y,
                 Text.FontSize,
                 Text.Visible ? "0" : "1",   // hidden
-                Part,
+                Unit,
                 DeMorganAlternate,
                 "\"" + Text.Value + "\"",  // quotes, spaces
                 Text.Italic ? "Italic" : "Normal",
@@ -76,7 +76,7 @@ namespace Kicad_utils.Symbol
             result.Text.Pos.Y = tokens[3].IntValue;
             result.Text.FontSize = (float)tokens[4].GetValueAsDouble();
             result.Text.Visible = tokens[5].Value != "1";
-            result.Part = tokens[6].IntValue;
+            result.Unit = tokens[6].IntValue;
             result.DeMorganAlternate = tokens[7].IntValue;
             result.Text.Value = tokens[8].Value;
             result.Text.Italic = tokens[9].Value == "Italic";

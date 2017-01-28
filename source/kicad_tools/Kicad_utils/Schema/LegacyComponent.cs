@@ -176,7 +176,7 @@ namespace Kicad_utils.Schema
             }
 
             //
-            data.Add(string.Format("\t1 {0} {1}", (int)Position.X, (int)Position.Y));
+            data.Add(string.Format("\t{0} {1} {2}", N, (int)Position.X, (int)Position.Y));
 
             int index = Rotation / 90;
             if (Mirror)

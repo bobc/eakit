@@ -20,6 +20,15 @@ namespace Kicad_utils.ModuleDef
         {
         }
 
+        public fp_arc(PointF start, PointF end, float angle, string layer, float width)
+        {
+            this.start = start;
+            this.end = end;
+            this.angle = angle;
+            this.layer = layer;
+            this.width = width;
+        }
+
         public override SExpression GetSExpression()
         {
             SExpression result = new SExpression();

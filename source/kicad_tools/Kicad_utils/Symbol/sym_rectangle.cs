@@ -17,8 +17,10 @@ namespace Kicad_utils.Symbol
         public sym_rectangle()
         { }
 
-        public sym_rectangle(float penSize, FillTypes fill, PointF p1, PointF p2)
+        public sym_rectangle(int unit, float penSize, FillTypes fill, PointF p1, PointF p2)
         {
+            Unit = unit;
+
             this.PenSize = penSize;
             this.Fill = fill;
 
@@ -33,7 +35,7 @@ namespace Kicad_utils.Symbol
             return string.Format("S {0} {1} {2} {3} {4} {5} {6} {7}",
                 P1.X, P1.Y,
                 P2.X, P2.Y,
-                Part,
+                Unit,
                 DeMorganAlternate,
                 PenSize,
                 sym_drawing_base.FillTypeToString(Fill)
@@ -49,7 +51,7 @@ namespace Kicad_utils.Symbol
             result.P2.X = tokens[3].IntValue;
             result.P2.Y = tokens[4].IntValue;
 
-            result.Part = tokens[5].IntValue;
+            result.Unit = tokens[5].IntValue;
             result.DeMorganAlternate = tokens[6].IntValue;
             result.PenSize = (float)tokens[7].GetValueAsDouble();
             result.Fill = sym_drawing_base.GetFillType(tokens[8].Value);

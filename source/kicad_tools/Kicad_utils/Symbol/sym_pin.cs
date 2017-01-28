@@ -55,13 +55,13 @@ namespace Kicad_utils.Symbol
             Visible = true;
         }
 
-        public sym_pin(string name, string pinNumber, PointF pos, int length, string orientation,
+        public sym_pin(int unit, string name, string pinNumber, PointF pos, int length, string orientation,
             float sizeNum, float sizeName, string type, string shape, bool pinVisible)
         {
             this.Name = name;
             this.PinNumber = pinNumber;
-            this.Part = 1;
-            this.DeMorganAlternate = 1;
+            this.Unit = unit;
+            this.DeMorganAlternate = 0;
 
             this.Pos = pos;
             this.Length = length;
@@ -83,7 +83,7 @@ namespace Kicad_utils.Symbol
                 Pos.X, Pos.Y,
                 Length, Orientation,
                 SizeNum, SizeName,
-                Part, DeMorganAlternate,
+                Unit, DeMorganAlternate,
                 Type,
                 Shape
                 );
@@ -101,7 +101,7 @@ namespace Kicad_utils.Symbol
             result.Orientation = tokens[6].Value;
             result.SizeNum = (float)tokens[7].GetValueAsDouble();
             result.SizeName = (float)tokens[8].GetValueAsDouble();
-            result.Part = tokens[9].IntValue;
+            result.Unit = tokens[9].IntValue;
             result.DeMorganAlternate = tokens[10].IntValue;
             result.Type = tokens[11].Value;
             if (tokens.Count >= 13)

@@ -17,8 +17,9 @@ namespace Kicad_utils.Symbol
         public sym_polygon()
         { }
 
-        public sym_polygon(float penSize, FillTypes fill, List<PointF> vertex)
+        public sym_polygon(int unit, float penSize, FillTypes fill, List<PointF> vertex)
         {
+            this.Unit = unit;
             this.PenSize = penSize;
             this.Fill = fill;
 
@@ -31,7 +32,7 @@ namespace Kicad_utils.Symbol
         {
             sym_polygon result = new sym_polygon();
             result.NumVertex = tokens[1].IntValue;
-            result.Part = tokens[2].IntValue;
+            result.Unit = tokens[2].IntValue;
             result.DeMorganAlternate = tokens[3].IntValue;
             result.PenSize = (float)tokens[4].GetValueAsDouble();
 
@@ -56,7 +57,7 @@ namespace Kicad_utils.Symbol
             // P count part dmg pen X Y … fill
             string result = string.Format("P {0} {1} {2} {3}",
                 NumVertex,
-                Part,
+                Unit,
                 DeMorganAlternate,
                 PenSize);
             for (int j = 0; j < NumVertex; j++)
