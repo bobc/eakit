@@ -1264,7 +1264,9 @@ namespace EagleImporter
             k_project.SaveToFile(filename);
         }
 
-        // instance_angle, k_comp.Mirror, k_comp.Position, attr_angle, attr_mirror);
+
+        // this method was derived from:
+        // https://github.com/lachlanA/eagle-to-kicad/blob/master/eagle6xx-sch-to-kicad-sch.ulp#L1181
         private void SetFieldAttributes(LegacyField field,
             PointF text_pos, 
             float instance_angle, bool instance_mirror, 
