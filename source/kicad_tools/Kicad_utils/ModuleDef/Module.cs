@@ -6,6 +6,8 @@ using System.IO;
 using OpenTK;
 using SExpressions;
 
+using Cad2D;
+
 namespace Kicad_utils.ModuleDef
 {
     public class Module
@@ -14,7 +16,7 @@ namespace Kicad_utils.ModuleDef
         public string Name;
         public bool locked;         // pcb: default: false
         public bool placed;         // pcb: default: false
-        public string layer;
+        public string layer;        // should be Front or Back, or actual name in PCB
         public uint tedit;          // used in pcb file
         public uint tstamp;         // used in pcb file
         public Position position;   // aka "at":  0,0 in module, used in pcb file
@@ -69,6 +71,16 @@ namespace Kicad_utils.ModuleDef
             CadModels = new List<model>();
         }
 
+        public Module Clone(bool is_pcb = false)
+        {
+            Module result;
+            SNodeBase sexpr;
+
+            sexpr = GetSExpression(is_pcb);
+            result = Parse(sexpr);
+            return result;
+        }
+
         public void SaveToFile(string filename)
         {
             filename = Path.ChangeExtension(filename, "kicad_mod");
@@ -82,6 +94,28 @@ namespace Kicad_utils.ModuleDef
         {
             Console.WriteLine("Parse error: ", message);
         }
+
+
+        public void Flip (PointF pos)
+        {
+            //swap front to back, and flip coords on X axis
+
+            position.Rotation = 360 - position.Rotation;
+
+            //TODO: this needs list of pcb layers
+            if (layer == "F.Cu")
+                layer = "B.Cu";
+            else
+                layer = "F.Cu";
+
+            foreach (pad pad in Pads)
+            {
+                pad.layers = Layer.ToString(Layer.FlipLayers(Layer.ParseLayers(pad.layers)));
+                pad.position.At.Y = -pad.position.At.Y;
+                pad.position.Rotation = -pad.position.Rotation + 360;
+            }
+        }
+
 
         void addToExtent (ref PointF min, ref PointF max, PointF p)
         {

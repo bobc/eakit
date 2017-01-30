@@ -45,8 +45,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\enums.cs" />
     <Compile Include="Common\FontAttributes.cs" />
     <Compile Include="Common\LayerDescriptor.cs" />
+    <Compile Include="Common\LayerList.cs" />
     <Compile Include="Drawing\Canvas.cs" />
     <Compile Include="ModuleDef\Drill.cs" />
     <Compile Include="ModuleDef\fp_arc.cs" />
@@ -59,7 +61,8 @@
     <Compile Include="ModuleDef\model.cs" />
     <Compile Include="ModuleDef\pad.cs" />
     <Compile Include="ModuleDef\Position.cs" />
-    <Compile Include="Pcb\dimension.cs" />
+    <Compile Include="Pcb\DimensionFeature.cs" />
+    <Compile Include="Pcb\Enums.cs" />
     <Compile Include="Pcb\General.cs" />
     <Compile Include="Pcb\graphic_base.cs" />
     <Compile Include="Pcb\gr_arc.cs" />
@@ -72,6 +75,8 @@
     <Compile Include="Pcb\NetClass.cs" />
     <Compile Include="Pcb\PcbLayer.cs" />
     <Compile Include="Pcb\PcbPlotParams.cs" />
+    <Compile Include="Pcb\Dimension.cs" />
+    <Compile Include="Pcb\Zone.cs" />
     <Compile Include="Pcb\PcbSegment.cs" />
     <Compile Include="Pcb\Setup.cs" />
     <Compile Include="Pcb\Via.cs" />

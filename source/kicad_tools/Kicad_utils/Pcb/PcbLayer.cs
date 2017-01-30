@@ -14,6 +14,14 @@ namespace Kicad_utils.Pcb
         public int Number;
         public string LayerName;
         public string Type; // signal, user
+        public bool Visible
+        {
+            get { return desc.Visible; }
+            set { desc.Visible = value; }
+        }
+
+        private LayerDescriptor desc = new LayerDescriptor();
+
 
         public PcbLayer(int number, string name, string type)
         {
@@ -48,11 +56,14 @@ namespace Kicad_utils.Pcb
         {
             List<PcbLayer> result = new List<PcbLayer>();
 
-            result.Add(new PcbLayer(0, Layer.B_Cu, "signal"));
             //todo: inner layers
 
             if (Legacy)
             {
+                // = v2 / 3 ??
+                // note : 0 and 31 swapped
+                result.Add(new PcbLayer(0, Layer.B_Cu, "signal"));
+
                 result.Add(new PcbLayer(15, Layer.F_Cu, "signal"));
 
                 result.Add(new PcbLayer(16, Layer.B_Adhes, "user"));
@@ -72,7 +83,8 @@ namespace Kicad_utils.Pcb
             }
             else
             {
-                result.Add(new PcbLayer(31, Layer.F_Cu, "signal"));
+                result.Add(new PcbLayer(0, Layer.F_Cu, "signal"));
+                result.Add(new PcbLayer(31, Layer.B_Cu, "signal"));
 
                 result.Add(new PcbLayer(32, Layer.B_Adhes, "user"));
                 result.Add(new PcbLayer(33, Layer.F_Adhes, "user"));

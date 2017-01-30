@@ -996,19 +996,40 @@ namespace EagleImport
 
     [XmlRoot(ElementName = "polygon")]
 	public class Polygon {
-		[XmlAttribute(AttributeName="isolate")]
+        [XmlAttribute(AttributeName = "width")]
+        public string Width { get; set; }
+
+        [XmlAttribute(AttributeName = "layer")]
+        public string Layer { get; set; }
+
+        [XmlAttribute(AttributeName = "spacing")]
+        public string Spacing { get; set; }
+
+        [XmlAttribute(AttributeName = "pour")]
+        public PolygonPour Pour{ get; set; }
+
+        [XmlAttribute(AttributeName="isolate")]
 		public string Isolate { get; set; }
-		[XmlAttribute(AttributeName="layer")]
-		public string Layer { get; set; }
-		[XmlAttribute(AttributeName="rank")]
+
+        [XmlAttribute(AttributeName = "orphans")]
+        public Bool Orphans { get; set; }
+
+        [XmlAttribute(AttributeName = "thermals")]
+        public Bool Thermals { get; set; }
+
+        [XmlAttribute(AttributeName="rank")]
 		public string Rank { get; set; }
-		[XmlAttribute(AttributeName="spacing")]
-		public string Spacing { get; set; }
+
+
         [XmlElement(ElementName = "vertex")]
         public List<Vertex> Vertex { get; set; }
 
-        [XmlAttribute(AttributeName = "width")]
-        public string Width { get; set; }
+        public Polygon()
+        {
+            Orphans = Bool.no;
+            Thermals = Bool.yes;
+            Rank = "0";
+        }
     }
 
     [XmlRoot(ElementName = "rectangle")]
@@ -1130,12 +1151,16 @@ namespace EagleImport
 	public class Signal {
 		[XmlElement(ElementName="contactref")]
 		public List<Contactref> Contactref { get; set; }
+
 		[XmlAttribute(AttributeName="name")]
 		public string Name { get; set; }
+
 		[XmlElement(ElementName="polygon")]
 		public List<Polygon> Polygon { get; set; }
+
 		[XmlElement(ElementName="via")]
 		public List<Via> Via { get; set; }
+
 		[XmlElement(ElementName="wire")]
 		public List<Wire> Wire { get; set; }
 	}
@@ -1315,15 +1340,33 @@ namespace EagleImport
 	public class Via {
 		[XmlAttribute(AttributeName="drill")]
 		public string Drill { get; set; }
+
 		[XmlAttribute(AttributeName="extent")]
 		public string Extent { get; set; }
+
 		[XmlAttribute(AttributeName="shape")]
-		public string Shape { get; set; }
+		public ViaShape Shape { get; set; }
+
 		[XmlAttribute(AttributeName="x")]
 		public string X { get; set; }
+
 		[XmlAttribute(AttributeName="y")]
 		public string Y { get; set; }
-	}
+
+        [XmlAttribute(AttributeName = "diameter")]
+        public string Diameter { get; set; }
+
+        [XmlAttribute(AttributeName = "alwaysstop")]
+        public Bool AlwaysStop { get; set; }
+
+        public Via()
+        {
+            Diameter = "0";
+            Shape = ViaShape.round;
+        }
+
+
+    }
 
     [XmlRoot(ElementName = "wire")]
     public class Wire

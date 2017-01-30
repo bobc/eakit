@@ -15,12 +15,23 @@ namespace Kicad_utils.Pcb
         public PointF at;
         public float size;
         public float drill;
-        public string layers;
+        public string topmost_layer;   // topmost
+        public string backmost_layer;
         public int net;
         public uint tstamp;
 
         public Via()
         {
+        }
+
+        public Via(PointF pos, float size, float drill, string topmost_layer, string backmost_layer, int net)
+        {
+            this.at = pos;
+            this.size = size;
+            this.drill = drill;
+            this.topmost_layer = topmost_layer;
+            this.backmost_layer = backmost_layer;
+            this.net = net;
         }
 
 
@@ -36,12 +47,26 @@ namespace Kicad_utils.Pcb
             }));
             result.Items.Add(new SExpression("size", size));
             result.Items.Add(new SExpression("drill", drill));
-            result.Items.Add(new SExpression("layers", layers));
+            result.Items.Add(new SExpression("layers", new List<SNodeBase>{
+                new SNodeAtom(topmost_layer),
+                new SNodeAtom(backmost_layer)
+                }));
             result.Items.Add(new SExpression("net", net));
-            result.Items.Add(new SExpression("tstamp", net));
+            result.Items.Add(new SExpression("tstamp", tstamp.ToString("X8")));
 
             return result;
         }
+
+        public static List<SExpression> GetSExpressionList(List<Via> list)
+        {
+            List<SExpression> result = new List<SExpression>();
+            foreach (Via item in list)
+            {
+                result.Add(item.GetSExpression());
+            }
+            return result;
+        }
+
 
         public static Via Parse(SExpression root_node)
         {
@@ -74,7 +99,8 @@ namespace Kicad_utils.Pcb
                             result.drill = sub.GetFloat();
                             break;
                         case "layers":
-                            result.layers = sub.GetString();
+                            result.topmost_layer = sub.GetString(0);
+                            result.topmost_layer = sub.GetString(1);
                             break;
                         case "net":
                             result.net = sub.GetInt();

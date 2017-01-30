@@ -43,10 +43,22 @@ namespace Kicad_utils.Pcb
             result.Items.Add(new SExpression("width", width));
             result.Items.Add(new SExpression("layer", layer));
             result.Items.Add(new SExpression("net", net));
-            result.Items.Add(new SExpression("tstamp", net));
+
+            result.Items.Add(new SExpression("tstamp", tstamp.ToString("X8")));
 
             return result;
         }
+
+        public static List<SExpression> GetSExpressionList(List<PcbSegment> Segments)
+        {
+            List<SExpression> result = new List<SExpression>();
+            foreach (PcbSegment segment in Segments)
+            {
+                result.Add(segment.GetSExpression());
+            }
+            return result;
+        }
+
 
         public static PcbSegment Parse(SExpression root_node)
         {

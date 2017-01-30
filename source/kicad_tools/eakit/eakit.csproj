@@ -4,16 +4,18 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{9A30DC99-90C1-4994-B224-3EEF03CCBADC}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{E1C7198C-B345-4C8E-9E50-BA7B867A6597}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>EagleConverter</RootNamespace>
-    <AssemblyName>EagleConverter</AssemblyName>
+    <RootNamespace>eakit</RootNamespace>
+    <AssemblyName>eakit</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -23,6 +25,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -31,13 +34,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTK.1.1.2349.61993\lib\NET40\OpenTK.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -45,34 +43,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BoardConverter.cs" />
-    <Compile Include="SchematicConverter.cs" />
-    <Compile Include="PinConnection.cs" />
-    <Compile Include="PrefixItem.cs" />
+    <Compile Include="AppSettings.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RenamedItem.cs" />
-    <Compile Include="RenamedMap.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cad2D\Cad2D.csproj">
-      <Project>{f088cf88-e199-4d0f-b1ad-c0b4980228d3}</Project>
-      <Name>Cad2D</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\EagleImport\EagleImport.csproj">
-      <Project>{22458ac2-27ba-48f6-894b-7a5d1b99b6a8}</Project>
-      <Name>EagleImport</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Kicad_utils\Kicad_utils.csproj">
-      <Project>{e06099b1-4b65-4ac4-9723-72021865e9d0}</Project>
-      <Name>Kicad_utils</Name>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EagleConverter\EagleConverter.csproj">
+      <Project>{9a30dc99-90c1-4994-b224-3eef03ccbadc}</Project>
+      <Name>EagleConverter</Name>
     </ProjectReference>
     <ProjectReference Include="..\RMC\RMC.csproj">
       <Project>{a729b4d7-858b-4675-a07f-bf4d38260caf}</Project>
       <Name>RMC</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

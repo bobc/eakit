@@ -12,6 +12,11 @@ namespace Kicad_utils.ModuleDef
 {
     public class pad
     {
+        public static string connect = "connect";
+        public static string smd = "smd";
+        public static string through_hole = "thru_hole";
+        public static string nonplated_hole = "np_thru_hole";
+
         public string number; // pin number or name
 
         // thru_hole
@@ -37,7 +42,7 @@ namespace Kicad_utils.ModuleDef
         public Drill drill;
         public SizeF oval_drill_size;
 
-        public string layers; //    List/string
+        public string layers; //    List/string , a wildcard mask PSV names e.g "F.Cu|F.Paste|F.Mask"
         public Net net;       // net <number> <string>    // use by pcb file  
 
         public float die_length;

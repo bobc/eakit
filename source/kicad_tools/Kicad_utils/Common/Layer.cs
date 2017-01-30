@@ -9,7 +9,7 @@ using SExpressions;
 namespace Kicad_utils
 {
 
-    public class Layer
+    public static class Layer
     {
         // (0 B.Cu signal)
         // (15 F.Cu signal)     now 31
@@ -41,6 +41,10 @@ namespace Kicad_utils
         // visible_elements? and pcbplotparams.layerselection
         //
 
+        public const int NumCopperLayers = 32;
+
+        public const int nFront_Cu = 0;
+        public const int nBack_Cu = 31;
 
 
         public const string F_Cu = "F.Cu";  // layer 0 (was 15?)
@@ -79,7 +83,9 @@ namespace Kicad_utils
 
         public const string B_Cu = "B.Cu";  // layer 31 (was 0?)
 
+        public const uint AllLayersMask = 0xffffffff;
 
+        // used in footprint def?
         public const string Front = "Front";
         public const string Back = "Back";
 
@@ -120,7 +126,12 @@ namespace Kicad_utils
                 return false;
         }
 
-        private static void ParseLayerName (string layer, ref string prefix, ref string suffix)
+        public static bool IsCopperLayer(int layer)
+        {
+            return (layer >= 0) && (layer <= 31);
+        }
+
+        private static void ParseLayerName(string layer, ref string prefix, ref string suffix)
         {
             if (layer.Contains("."))
             {
@@ -163,7 +174,7 @@ namespace Kicad_utils
         }
 
         // e.g. ChangeLayer ("Front", "B.Fab") ==> F.Fab
-        public static string MakeLayerName (string CuLayer, string layer)
+        public static string MakeLayerName(string CuLayer, string layer)
         {
             if (CuLayer.StartsWith("F"))
                 CuLayer = "F";
@@ -177,7 +188,7 @@ namespace Kicad_utils
         }
 
         // get layer name from number
-        private static string GetLayerName_Legacy (int layer)
+        private static string GetLayerName_Legacy(int layer)
         {
             if ((layer >= 0) && (layer < Legacy_Layers.Count))
                 return Legacy_Layers[layer].Name;
@@ -186,7 +197,7 @@ namespace Kicad_utils
         }
 
 
-        public static int GetLayerNumber_Legacy (string layer)
+        public static int GetLayerNumber_Legacy(string layer)
         {
             foreach (LayerDescriptor desc in Legacy_Layers)
             {
@@ -196,7 +207,12 @@ namespace Kicad_utils
             return 0;
         }
 
-        private static int GetLayerNumber(string layer)
+        /// <summary>
+        /// Get the layer number from the name
+        /// </summary>
+        /// <param name="layer"></param>
+        /// <returns></returns>
+        public static int GetLayerNumber(string layer)
         {
             foreach (LayerDescriptor desc in New_Layers)
             {
@@ -205,6 +221,16 @@ namespace Kicad_utils
             }
             return 0;
         }
+
+        // get layer name from number
+        public static string GetLayerName(int layer)
+        {
+            if ((layer >= 0) && (layer < New_Layers.Count))
+                return New_Layers[layer].Name;
+            else
+                return "Layer_" + layer;
+        }
+
 
         public static List<SNodeBase> GetLayerList(string layers)
         {
@@ -234,7 +260,7 @@ namespace Kicad_utils
 
         // NB : for legacy .mod (and pcb?) shouud be 32 bit
         // for new .pretty (.kicad_pcb?) should be 64 bit
-        private static UInt32 GetLayerBitmask_Legacy (string layers)
+        private static UInt32 GetLayerBitmask_Legacy(string layers)
         {
             UInt32 layer_code = 0;
 
@@ -267,7 +293,7 @@ namespace Kicad_utils
         }
 
         private static List<LayerDescriptor> Legacy_Layers = new List<LayerDescriptor>()
-            { 
+            {
                 new LayerDescriptor (0, B_Cu),
                 new LayerDescriptor (1, Inner1_Cu),
                 new LayerDescriptor (2, Inner2_Cu),
@@ -341,10 +367,13 @@ namespace Kicad_utils
 
                 new LayerDescriptor (32, B_Adhes),
                 new LayerDescriptor (33, F_Adhes),
+
                 new LayerDescriptor (34, B_Paste),
                 new LayerDescriptor (35, F_Paste),
+
                 new LayerDescriptor (36, B_SilkS),
                 new LayerDescriptor (37, F_SilkS),
+
                 new LayerDescriptor (38, B_Mask),
                 new LayerDescriptor (39, F_Mask),
 
@@ -356,6 +385,7 @@ namespace Kicad_utils
                 // 45?
                 new LayerDescriptor (46, B_Courtyard),
                 new LayerDescriptor (47, F_Courtyard),
+
                 new LayerDescriptor (48, B_Fab),
                 new LayerDescriptor (49, F_Fab),
 
@@ -364,9 +394,10 @@ namespace Kicad_utils
 
         // parsing
         // parse single layer
+        // e.g (layer F.SilkS)
         public static string ParseLayer(SNodeBase node)
         {
-            if ( (node is SExpression) && ( (node as SExpression).Name == "layer"))
+            if ((node is SExpression) && ((node as SExpression).Name == "layer"))
             {
                 SExpression expr = node as SExpression;
                 string result = "";
@@ -384,6 +415,7 @@ namespace Kicad_utils
         }
 
         // returns PSV "...|..."
+        // e.g (layers F.Cu F.Paste F.Mask)
         public static string ParseLayers(SNodeBase node)
         {
             if ((node is SExpression) && ((node as SExpression).Name == "layers"))
@@ -403,8 +435,72 @@ namespace Kicad_utils
                 return "";  // error
         }
 
-    }
 
+        // e.g (layers F.Cu F.Paste F.Mask)
+        // or 
+        public static List<LayerDescriptor> ParseLayers(string layers_psv)
+        {
+            List<LayerDescriptor> result = new List<LayerDescriptor>();
+
+            if (layers_psv.IndexOf("*.Cu") != -1)
+                foreach (LayerDescriptor ld in New_Layers)
+                    if (ld.Number < NumCopperLayers)
+                        result.Add(ld);
+
+            foreach (LayerDescriptor desc in Layer.New_Layers)
+            {
+                if (layers_psv.IndexOf(desc.Name) != -1)
+                    result.Add(desc);
+            }
+            return result;
+        }
+
+        public static List<LayerDescriptor> FlipLayers(List<LayerDescriptor> layer_list)
+        {
+            List<LayerDescriptor> result = new List<LayerDescriptor>();
+            foreach (LayerDescriptor desc in layer_list)
+            {
+                result.Add(desc.FlipLayer());
+            }
+            return result;
+        }
+
+        // to PSV
+        public static string ToString (List<LayerDescriptor> layer_list)
+        {
+            string result = "";
+            bool add_copper = true;
+
+            UInt32 mask = 0;
+
+            foreach (LayerDescriptor desc in layer_list)
+            {
+                if (desc.Number < NumCopperLayers)
+                    mask = mask | (1u << desc.Number);
+                else
+                    break;
+            }
+
+            if ( (mask & AllLayersMask) == AllLayersMask)
+            {
+                add_copper = false;
+                result = "*.Cu";
+            }
+
+            foreach (LayerDescriptor desc in layer_list)
+            {
+                if (add_copper || desc.Number >= NumCopperLayers)
+                {
+                    if (result.Length != 0)
+                        result += "|";
+                    result += desc.Name;
+                }
+            }
+
+            return result;
+        }
+
+    }
 
 
 }

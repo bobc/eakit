@@ -22,26 +22,21 @@ namespace Kicad_utils.Pcb
         public string Host_Version;    // app_name version
         public General General;
         public string Page;    // "A3", "A4"
+        public PageMode PageMode;          // portrait/landscape
         public List<PcbLayer> Layers;
         public Setup Setup;
         public List<Net> Nets; // list of nets #nets
         public List<NetClass> NetClasses;
         public List<Module> Modules; // #modules
         public List<graphic_base> Drawings;    // list of graphic items : #drawings
-
+        public List<Zone> Zones;
+        public List<PcbSegment> Segments;
+        public List<Via> Vias;
 
         public List<SExpression> UnParsed;
 
         // links?
         // no-connects?
-        // tracks
-        // zones
-
-        //public List<Segment> Segments;
-
-        // public List<Via> Vias;
-        // public List<Zone> Zone;
-
 
         public kicad_pcb()
         {
@@ -51,11 +46,12 @@ namespace Kicad_utils.Pcb
             //RootNode.Items = new List<SNodeBase>();
             //RootNode.Items.Add(new SExpression("version", new List<SNodeBase>() { new SNodeNumber(3) }));
 
-            FileVersion = "3";
+            FileVersion = "4";
             Host_Name = "pcbnew";
             Host_Version = "(2013-07-07 BZR 4022)-stable";  //??
             General = new General();
             Page = "A4";
+            PageMode = PageMode.landscape;
             Layers = PcbLayer.DefaultLayers();
 
             Setup = new Setup();
@@ -65,6 +61,12 @@ namespace Kicad_utils.Pcb
             NetClasses.Add(NetClass.DefaultNetclass());
             Modules = null;
             Drawings = null;
+
+            Setup.aux_axis_origin = new PointF(0, 0);
+
+            Zones = new List<Zone>();
+            Segments = new List<PcbSegment>();
+            Vias = new List<Via>();
         }
 
         public void AddModule(Module module, PointF position)
@@ -220,14 +222,21 @@ namespace Kicad_utils.Pcb
 
             RootNode = new SExpression();
             List<SExpression> sex_list;
+            List<SNodeBase> node_list;
 
             RootNode.Name = "kicad_pcb";
             RootNode.Items = new List<SNodeBase>();
 
-            RootNode.Items.Add(new SExpression("version", new List<SNodeBase>() { new SNodeAtom(3) }));
+            RootNode.Items.Add(new SExpression("version", new List<SNodeBase>() { new SNodeAtom(FileVersion) }));
             RootNode.Items.Add(new SExpression("host", new List<SNodeBase>() { new SNodeAtom(Host_Name), new SNodeAtom(Host_Version) }));
             RootNode.Items.Add(General.GetSExpression());
-            RootNode.Items.Add(new SExpression("page", new List<SNodeBase>() { new SNodeAtom(Page) }));
+
+            node_list = new List<SNodeBase>();
+            node_list.Add(new SNodeAtom(Page));
+            if (PageMode!= PageMode.landscape)
+                node_list.Add(new SNodeAtom(PageMode.ToString()));
+            RootNode.Items.Add(new SExpression("page", node_list));
+
             RootNode.Items.Add(PcbLayer.GetSExpression(Layers));
             RootNode.Items.Add(Setup.GetSExpression());
 
@@ -252,6 +261,28 @@ namespace Kicad_utils.Pcb
                 foreach (SExpression sex in sex_list)
                     RootNode.Items.Add(sex);
             }
+
+            if (Segments != null)
+            {
+                sex_list = PcbSegment.GetSExpressionList(Segments);
+                foreach (SExpression sex in sex_list)
+                    RootNode.Items.Add(sex);
+            }
+
+            if (Zones != null)
+            {
+                sex_list = Zone.GetSExpressionList(Zones);
+                foreach (SExpression sex in sex_list)
+                    RootNode.Items.Add(sex);
+            }
+
+            if (Vias != null)
+            {
+                sex_list = Via.GetSExpressionList(Vias);
+                foreach (SExpression sex in sex_list)
+                    RootNode.Items.Add(sex);
+            }
+
             //
             RootNode.WriteToFile(filename);
         }

@@ -39,7 +39,7 @@ namespace Kicad_utils.Pcb
 
         public PcbPlotParams()
         {
-            layerselection = 0x10F08001;
+            layerselection = 0x10F08001;    // 0x00030_80000001
             usegerberextensions = true;
             excludeedgelayer = false;
             linewidth = 0.100000f;

@@ -451,10 +451,15 @@ namespace SExpressions
 
         public float GetFloat()
         {
-            if ((this.Items != null) && (this.Items.Count >= 1) && (this.Items[0] is SNodeAtom))
+            return GetFloat(0);
+        }
+
+        public float GetFloat(int index)
+        {
+            if ((this.Items != null) && (index < this.Items.Count) && (this.Items[index] is SNodeAtom))
             {
                 float result = 0;
-                float.TryParse((this.Items[0] as SNodeAtom).Value, out result);
+                float.TryParse((this.Items[index] as SNodeAtom).Value, out result);
                 
                 return result;
             }
@@ -509,11 +514,16 @@ namespace SExpressions
                 return 0;  // error
         }
 
-        public string GetString()
+        public string  GetString()
         {
-            if ((this.Items != null) && (this.Items.Count > 0) && (this.Items[0] is SNodeAtom))
+            return GetString(0);
+        }
+
+        public string GetString(int index)
+        {
+            if ((this.Items != null) && (index < this.Items.Count) && (this.Items[index] is SNodeAtom))
             {
-                return (this.Items[0] as SNodeAtom).Value;
+                return (this.Items[index] as SNodeAtom).Value;
             }
             else
                 return "";

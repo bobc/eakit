@@ -35,7 +35,9 @@ namespace Kicad_utils.Pcb
         public SizeF pad_size;
         public float pad_drill;
         public float pad_to_mask_clearance;
+        public PointF grid_origin;
         public PointF aux_axis_origin;
+
         public uint visible_elements; // hex bit mask FFFFFFBF;
 
         public PcbPlotParams pcb_plot_params;
@@ -66,7 +68,9 @@ namespace Kicad_utils.Pcb
             pad_size = new SizeF(1.524f, 1.524f);
             pad_drill = 0.762f;
             pad_to_mask_clearance = 0.2f;
-            aux_axis_origin = new PointF(50, 150);  // depends on page size
+            //aux_axis_origin = new PointF(50, 150);  // depends on page size
+            aux_axis_origin = new PointF(0, 0);
+            grid_origin = new PointF(0, 0);
             visible_elements = 0xFFFFFFFF;
 
             pcb_plot_params = new PcbPlotParams();

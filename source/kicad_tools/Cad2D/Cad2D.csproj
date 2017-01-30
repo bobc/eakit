@@ -57,6 +57,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="MathUtil.cs" />
+    <Compile Include="PointFExt.cs" />
     <Compile Include="Polygon.cs" />
     <Compile Include="Polygon_Triangulator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -16,7 +16,7 @@ using Kicad_utils.Schema;
 
 namespace EagleConverter
 {
-    public class EagleUtils
+    public partial class EagleUtils
     {
         const float mm_to_mil = 1000.0f / 25.4f;
         const float inch_to_mm = 25.4f;
@@ -35,15 +35,17 @@ namespace EagleConverter
         string ProjectName;
         string OutputFolder;
         EagleSchematic schematic;
-        EagleFile board;
         DesignRules designRules;
 
         StreamWriter reportFile = null;
 
         List<string> LibNames = new List<string>();
         List<Device> AllDevices = new List<Device>();
-        List<k.Symbol.Symbol> AllSymbols = new List<k.Symbol.Symbol>();
-        List<ComponentBase> AllComponents = new List<ComponentBase>();
+
+        List<k.Symbol.Symbol> AllSymbols = new List<k.Symbol.Symbol>(); // all symbols from all libraries in sch file
+        List<k.ModuleDef.Module> AllFootprints = new List<k.ModuleDef.Module>(); // all package/module/foorptints from all libraries in sch file
+
+        List<ComponentBase> AllComponents = new List<ComponentBase>(); // all component instances in all schematic sheets
         k.Project.FootprintTable footprintTable = new k.Project.FootprintTable();
         RenameMap PartMap = new RenameMap();
         RenameMap FootprintNameMap = new RenameMap();
@@ -119,9 +121,39 @@ namespace EagleConverter
             return new SizeF(StrToVal_mm(dx), StrToVal_mm(dy));
         }
 
+        // For footprint files
         private PointF StrToPointFlip_mm(string x, string y)
         {
             PointF result = new PointF(StrToVal_mm(x), -StrToVal_mm(y));
+            return result;
+        }
+
+        //NB works in mm
+        private float RoundToGrid (float x, float align)
+        {
+            int j = (int)(x / align + align/2f);
+
+            return j * align;
+
+        }
+
+        private PointF StrToPoint_Board(string x, string y)
+        {
+            float grid = 0.100f * 25.4f;
+            // PointF result = new PointF(StrToVal_mm(x), -StrToVal_mm(y));
+
+            float height = RoundToGrid(PageSize.Height, grid);
+
+            float y_offset = (PageSize.Height - DrawingOffset.Y);
+            y_offset = RoundToGrid (y_offset, grid);
+
+            PointF result = new PointF(StrToVal_mm(x) + DrawingOffset.X,
+                StrToVal_mm(y) + DrawingOffset.Y
+                );
+
+            //result.Y = PageSize.Height * mm_to_mil - result.Y;
+            result.Y = height - result.Y;
+
             return result;
         }
 
@@ -338,29 +370,6 @@ namespace EagleConverter
                 return orig;
         }
 
-        public static double DegToRad(double degrees)
-        {
-            return degrees * Math.PI / 180;
-        }
-
-        public static PointF RotatePoint(PointF point, double angleDegree)
-        {
-            return RotatePoint(point, new PointF(0, 0), angleDegree);
-        }
-
-        public static PointF RotatePoint(PointF point, PointF pivot, double angleDegree)
-        {
-            double angle = DegToRad(angleDegree);
-            double cos = Math.Cos(angle);
-            double sin = Math.Sin(angle);
-            double dx = point.X - pivot.X;
-            double dy = point.Y - pivot.Y;
-            double x = cos * dx - sin * dy + pivot.X;
-            double y = sin * dx + cos * dy + pivot.Y;
-
-            PointF rotated = new PointF((float)x, (float)y);
-            return rotated;
-        }
 
         // [MSR]0 to 359.9
         private int GetAngle(string rot)
@@ -527,102 +536,114 @@ namespace EagleConverter
             return tstamp;
         }
 
-        private string GetLayer(string number)
+        private k.LayerDescriptor ConvertLayer(string number)
         {
+            k.LayerDescriptor result = new Kicad_utils.LayerDescriptor();
+
+            //todo: for copper layers use number?
+            //todo: use layer names from Eagle? (cu layers only)
+
             Layer layer = schematic.Drawing.Layers.Layer.Find(x => x.Number == number);
 
             if (layer == null)
             {
                 switch (number)
                 {
-                    case "160": return "Eco1.User";
-                    case "161": return "Eco2.User";
+                    case "160": result.Name = "Eco1.User"; break;
+                    case "161": result.Name = "Eco2.User"; break;
                 }
 
-                Trace(string.Format("warning: layer not found: {0}",  number));
-                return "Cmts.User";
+                Trace(string.Format("warning: layer not found: {0}", number));
+                result.Name = "Cmts.User";
             }
-
-            switch (layer.Name)
+            else
             {
-                // 1
-                case "Top":
-                case "tCopper":
-                    return "F.Cu";              // or Top
-                // 16
-                case "Bottom":
-                case "bCopper":
-                    return "B.Cu";           // or Bottom
+                switch (layer.Name)
+                {
+                    // 1
+                    case "Top":
+                    case "tCopper":
+                        result.Name = "F.Cu";              // or Top
+                        break;
+                    // 16
+                    case "Bottom":
+                    case "bCopper":
+                        result.Name = "B.Cu";           // or Bottom
+                        break;
 
-                // 20
-                case "Dimension": return "Edge.Cuts";   // or edge?
+                    // 20
+                    case "Dimension": result.Name = "Edge.Cuts"; break;  // or edge?
 
-                // 21
-                case "tPlace": return "F.SilkS";
-                // 22
-                case "bPlace": return "B.SilkS";
+                    // 21
+                    case "tPlace": result.Name = "F.SilkS"; break;
+                    // 22
+                    case "bPlace": result.Name = "B.SilkS"; break;
 
-                // 25
-                case "tNames": return "F.SilkS";
-                // 26
-                case "bNames": return "B.SilkS";
+                    // 25
+                    case "tNames": result.Name = "F.SilkS"; break;
+                    // 26
+                    case "bNames": result.Name = "B.SilkS"; break;
 
-                // 27
-                case "tValues": return "F.SilkS";
-                // 28
-                case "bValues": return "B.SilkS";
+                    // 27
+                    case "tValues": result.Name = "F.SilkS"; break;
+                    // 28
+                    case "bValues": result.Name = "B.SilkS"; break;
 
-                // 29
-                case "tStop": return "F.Mask";
-                // 30
-                case "bStop": return "B.Mask";
+                    // 29
+                    case "tStop": result.Name = "F.Mask"; break;
+                    // 30
+                    case "bStop": result.Name = "B.Mask"; break;
 
-                // 31
-                case "tCream": return "F.Paste";
-                // 32
-                case "bCream": return "B.Paste";
+                    // 31
+                    case "tCream": result.Name = "F.Paste"; break;
+                    // 32
+                    case "bCream": result.Name = "B.Paste"; break;
 
-                // 33
-                case "tFinish": return "F.Mask";
-                // 34
-                case "bFinish": return "B.Mask";
+                    // 33
+                    case "tFinish": result.Name = "F.Mask"; break;
+                    // 34
+                    case "bFinish": result.Name = "B.Mask"; break;
 
-                // 35
-                case "tGlue": return "F.Adhes";
-                // 36
-                case "bGlue": return "B.Adhes";
+                    // 35
+                    case "tGlue": result.Name = "F.Adhes"; break;
+                    // 36
+                    case "bGlue": result.Name = "B.Adhes"; break;
 
-                // 39
-                case "tKeepout": return "F.CrtYd"; 
-                // 40
-                case "bKeepout": return "B.CrtYd";
+                    // 39
+                    case "tKeepout": result.Name = "F.CrtYd"; break;
+                    // 40
+                    case "bKeepout": result.Name = "B.CrtYd"; break;
 
-                // -> clearance?
-                // 41
-                case "tRestrict": return "Dwgs.User";
-                // 42
-                case "bRestrict": return "Dwgs.User";
-                // 43
-                case "vRestrict": return "Dwgs.User";
+                    // -> clearance?
+                    // 41
+                    case "tRestrict": result.Name = "Dwgs.User"; break;
+                    // 42
+                    case "bRestrict": result.Name = "Dwgs.User"; break;
+                    // 43
+                    case "vRestrict": result.Name = "Dwgs.User"; break;
 
-                // 46
-                case "Milling": return "Dwgs.User"; // edge?
+                    // 46
+                    case "Milling": result.Name = "Dwgs.User"; break; // edge?
 
-                // 49
-                case "ReferenceLC": return "Cmts.User";
-                // 50
-                case "ReferenceLS": return "Cmts.User";
+                    // 49
+                    case "ReferenceLC": result.Name = "Cmts.User"; break;
+                    // 50
+                    case "ReferenceLS": result.Name = "Cmts.User"; break;
 
-                // 51
-                case "tDocu": return "Dwgs.User";
-                // 52
-                case "bDocu": return "Dwgs.User";
+                    // 51
+                    case "tDocu": result.Name = "Dwgs.User"; break;
+                    // 52
+                    case "bDocu": result.Name = "Dwgs.User"; break;
 
-
+                    default:
+                        Trace(string.Format("warning: layer not found: {0}", number, layer.Name));
+                        result.Name = "Cmts.User";
+                        break;
+                }
             }
 
-            Trace(string.Format("warning: layer not found: {0}", number, layer.Name));
-            return "Cmts.User";
+            result.Number = k.Layer.GetLayerNumber(result.Name);
+            return result;
         }
 
         private void GetSymbol(Library lib, Deviceset devset, k.Symbol.Symbol k_sym)
@@ -877,7 +898,7 @@ namespace EagleConverter
                             k.ModuleDef.fp_line k_line = new Kicad_utils.ModuleDef.fp_line(
                                 StrToPointFlip_mm(wire.X1, wire.Y1),
                                 StrToPointFlip_mm(wire.X2, wire.Y2),
-                                GetLayer(wire.Layer),
+                                ConvertLayer(wire.Layer).Name,
                                 StrToVal_mm(wire.Width));
                             k_module.Borders.Add(k_line);
                         }
@@ -891,7 +912,7 @@ namespace EagleConverter
                             k.ModuleDef.fp_arc k_arc = new k.ModuleDef.fp_arc (
                                 center, start,
                                 -curve,
-                                GetLayer(wire.Layer),
+                                ConvertLayer(wire.Layer).Name,
                                 StrToVal_mm(wire.Width));
 
                             k_module.Borders.Add(k_arc);
@@ -905,7 +926,7 @@ namespace EagleConverter
                             k_pad.size = StrToSize_mm(smd.Dy, smd.Dx);
                         k_module.Pads.Add(k_pad);
 
-                        string layer = GetLayer(smd.Layer);
+                        string layer = ConvertLayer(smd.Layer).Name;
                     }
 
                     foreach (Pad pad in package.Pad)
@@ -930,7 +951,7 @@ namespace EagleConverter
                     {
                         k.ModuleDef.fp_text k_text = new k.ModuleDef.fp_text("ref", text.mText,
                             StrToPointFlip_mm(text.X, text.Y),
-                            GetLayer(text.Layer),
+                            ConvertLayer(text.Layer).Name,
                             new SizeF(StrToVal_mm(text.Size), StrToVal_mm(text.Size)),
                             0.12f,
                             true);
@@ -962,7 +983,7 @@ namespace EagleConverter
                     {
                         k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(
                             StrToPointFlip_mm(rect.X1, rect.Y1), StrToPointFlip_mm(rect.X2, rect.Y2),
-                            GetLayer(rect.Layer),
+                            ConvertLayer(rect.Layer).Name,
                             0.12f
                             );
                         k_module.Borders.Add(k_poly);
@@ -973,7 +994,7 @@ namespace EagleConverter
                         k.ModuleDef.fp_circle k_circle = new Kicad_utils.ModuleDef.fp_circle(
                             StrToPointFlip_mm(circle.X, circle.Y),
                             StrToVal_mm(circle.Radius),
-                            GetLayer(circle.Layer),
+                            ConvertLayer(circle.Layer).Name,
                             StrToVal_mm(circle.Width)
                             );
                         k_module.Borders.Add(k_circle);
@@ -1001,12 +1022,17 @@ namespace EagleConverter
                             poly_2d.AddVertex(p.X, p.Y);
                         }
 
-                        k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(poly_2d, GetLayer(poly.Layer), 0.12f);
+                        k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(poly_2d, ConvertLayer(poly.Layer).Name, 0.12f);
                         k_module.Borders.Add(k_poly);
                     }
 
                     //
                     k_footprint_lib.Modules.Add(k_module);
+
+                    //
+                    k.ModuleDef.Module k_generic = k_module.Clone();
+                    k_generic.Name = lib.Name + ":" + k_generic.Name;
+                    AllFootprints.Add(k_generic);
                 }
 
                 if (k_footprint_lib.Modules.Count > 0)
@@ -1205,8 +1231,9 @@ namespace EagleConverter
             k_section = new k.Project.Section("pcbnew");
             k_project.Sections.Add(k_section);
             k_section.AddItem("version", 1);
+            //PageLayoutDescrFile=C:/git_bobc/WebRadio/hardware/test_main - Copy/custom.kicad_wks
             k_section.AddItem("LastNetListRead", "");
-            k_section.AddItem("UseCmpFile", 1);
+            //k_section.AddItem("UseCmpFile", 1);
             k_section.AddItem("PadDrill", 0.6f);
             k_section.AddItem("PadDrillOvalY", 0.6f);
             k_section.AddItem("PadSizeH", 1.5f);
@@ -1217,7 +1244,7 @@ namespace EagleConverter
             k_section.AddItem("ModuleTextSizeV", 1.0f);
             k_section.AddItem("ModuleTextSizeH", 1.0f);
             k_section.AddItem("ModuleTextSizeThickness", 0.15f);
-            k_section.AddItem("SolderMaskClearance", 0.0f);
+            k_section.AddItem("SolderMaskClearance", 0.2f);
             k_section.AddItem("SolderMaskMinWidth", 0.0f);
             k_section.AddItem("DrawSegmentWidth", 0.2f);
             k_section.AddItem("BoardOutlineThickness", 0.1f);
@@ -1707,7 +1734,7 @@ namespace EagleConverter
 
                         //debug
                         // field pos rotated about comp pos
-                        PointF p = RotatePoint(field.Pos, k_comp.Position, k_comp.Rotation);
+                        PointF p = PointFExt.RotatePoint(field.Pos, k_comp.Position, k_comp.Rotation);
                         k.Schema.sch_wire k_line;
 
                         //// field pos  +
@@ -1875,7 +1902,7 @@ namespace EagleConverter
                         PointF pin_pos = StrToPointInch(pin.X, pin.Y);
 
                         bool instance_mirror;
-                        pin_pos = RotatePoint(pin_pos, GetAngle2(instance.Rot, out instance_mirror));
+                        pin_pos = PointFExt.RotatePoint(pin_pos, GetAngle2(instance.Rot, out instance_mirror));
                         if (instance_mirror)
                             pin_pos = new PointF(-pin_pos.X, pin_pos.Y);
 
@@ -1975,6 +2002,7 @@ namespace EagleConverter
             LibNames = new List<string>();
             AllDevices = new List<Device>();
             AllSymbols = new List<k.Symbol.Symbol>();
+            AllFootprints = new List<k.ModuleDef.Module>();
             AllComponents = new List<ComponentBase>();
             footprintTable = new k.Project.FootprintTable();
             PartMap = new RenameMap();
@@ -2003,6 +2031,8 @@ namespace EagleConverter
 
             if (schematic != null)
             {
+                DrawingOffset = new PointF(10.16f, 12.7f);
+
                 ConvertComponentLibraries();
 
                 //
@@ -2039,9 +2069,7 @@ namespace EagleConverter
                 k_schematic.SaveToFile(filename);
 
 
-                // todo: pcb
-                //Trace(string.Format("Reading board file {0}", Path.ChangeExtension(SourceFilename,".brd")));
-                //board = EagleFile.LoadFromXmlFile(Path.ChangeExtension(SourceFilename,".brd"));
+                ConvertBoardFile(SourceFilename);
 
                 //
                 WriteProjectFile();
@@ -2067,120 +2095,7 @@ namespace EagleConverter
     }
 
 
-    public class PrefixItem
-    {
-        public string Prefix; // eg. "R"
-        public int Index;
 
-        public PrefixItem() { }
 
-        public PrefixItem(string p)
-        {
-            Prefix = p;
-            Index = 1;
-        }
-    }
-
-    public class RenamedItem
-    {
-        public string Original; // eg. "LCD"
-        public string NewName;     // e.g. "LCD1"
-
-        public RenamedItem() { }
-
-        public RenamedItem(string orig, string newName)
-        {
-            Original = orig;
-            NewName = newName;
-        }
-    }
-
-    public class RenameMap
-    {
-        public List<PrefixItem> PrefixItems;
-        public List<RenamedItem> Renames;
-
-        public RenameMap()
-        {
-            Renames = new List<RenamedItem>();
-            PrefixItems = new List<PrefixItem>();
-        }
-
-        public void Add (string orig, string cleanName)
-        {
-            if (Renames.Find (x => x.Original == orig) == null)
-                Renames.Add(new RenamedItem(orig, cleanName));
-        }
-
-        public void Add(string orig)
-        {
-            if (Renames.Find(x => x.Original == orig) == null)
-                Renames.Add(new RenamedItem(orig, null));
-        }
-
-        public string GetNewName(string orig)
-        {
-            RenamedItem item = Renames.Find(x => x.Original == orig);
-
-            if (item != null)
-                return item.NewName;
-            else
-                return orig;
-        }
-
-        public string GetPrefix (string name)
-        {
-            while (char.IsDigit (name[name.Length-1]))
-            {
-                name = name.Substring(0, name.Length - 1);
-            }
-            return name;
-        }
-
-        public int GetNumber(string name)
-        {
-            int result = 0;
-            string t="";
-            int index = name.Length - 1;
-
-            while ( (index < name.Length) && char.IsDigit(name[index]) )
-            {
-                t = name[index] + t;
-                index--;
-            }
-
-            int.TryParse(t, out result);
-
-            return result;
-        }
-
-        public void Annotate ()
-        {
-            foreach (RenamedItem item in Renames)
-            {
-                string base_name = GetPrefix(item.Original);
-                int num = GetNumber(item.Original);
-
-                if (num != 0)
-                {
-                    item.NewName = item.Original;
-                }
-                else
-                {
-                    num = 1;
-                    string new_name = base_name + num;
-                    RenamedItem test = Renames.Find(x => x.Original == new_name);
-                    while (test!= null)
-                    {
-                        num++; new_name = base_name + num;
-                        test = Renames.Find(x => x.Original == new_name);
-                    }
-
-                    item.NewName = new_name;
-                }
-            }
-        }
-
-    } 
 
 }

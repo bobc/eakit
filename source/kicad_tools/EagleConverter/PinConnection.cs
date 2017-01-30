@@ -11,16 +11,19 @@ namespace EagleConverter
 {
     public class PinConnection
     {
-        public int SheetNumber; // eagle sheet number
-        public PointF position; // kicad units
 
+        public string NetLabel;
         public Part Part;
         public string GateId;   // unit
         public string PinName;
 
-        public string NetLabel;
+        public PointF position; // kicad units
+        public string Layer;
+        public string PartName;
 
-        public string PadName;
+
+        //public int SheetNumber; // eagle sheet number
+        //public string PadName;
 
         public PinConnection()
         {
@@ -31,6 +34,16 @@ namespace EagleConverter
             this.NetLabel = netLabel;
             this.Part = part;
             this.GateId = gate;
+            this.PinName = pin;
+        }
+
+        public PinConnection(string netLabel, PointF pos, string layer, string part, string pin)
+        {
+            this.NetLabel = netLabel;
+            this.position = pos;
+            this.Layer = layer;
+
+            this.PartName = part;
             this.PinName = pin;
         }
 
