@@ -224,6 +224,8 @@ namespace Cad2D
             return PointOnLineStates.PointIsOnTheSegment;
         }
 
+
+
 #if TODO
 
         public static bool RectCollidesWithCircle(Vector2 center, float radius, Rectangle rect)

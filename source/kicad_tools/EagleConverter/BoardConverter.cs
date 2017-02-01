@@ -8,27 +8,33 @@ using System.Drawing;
 
 using k = Kicad_utils;
 using EagleImport;
+using Cad2D;
+
+using EagleConverter.Font;
 
 namespace EagleConverter
 {
     public partial class EagleUtils
     {
+        const bool debug = false;
+
         EagleFile board;
 
         int hole_index = 1;
+        int vpad_index = 1;
 
-        private k.ModuleDef.Module OnePin(float pad_diam, float drill_diam)
+        private k.ModuleDef.Module OnePin(float pad_diam, float drill_diam, string name, string hole_type)
         {
-            SizeF text_size = new SizeF(2.0f, 2.0f);
+            SizeF text_size = new SizeF(0.5f, 0.5f);
 
             k.ModuleDef.Module module = new k.ModuleDef.Module();
-            module.Name = "@HOLE" + hole_index++;
+            module.Name = name;
             module.layer = k.Layer.GetLayerName (k.Layer.nFront_Cu);
             module.At = new PointF(0, 0);
-            module.Reference = new k.ModuleDef.fp_text("reference", module.Name, new PointF(0, 2.54f), k.Layer.F_SilkS, new SizeF(1.5f, 1.5f), 0.15f, false);
-            module.Value = new k.ModuleDef.fp_text("value", "~", new PointF(0, -2.54f), k.Layer.F_SilkS, new SizeF(1.5f, 1.5f), 0.15f, false);
+            module.Reference = new k.ModuleDef.fp_text("reference", module.Name, new PointF(0, 0), k.Layer.F_SilkS, text_size, 0.1f, false);
+            module.Value = new k.ModuleDef.fp_text("value", "~", new PointF(0, 0), k.Layer.F_Fab, text_size, 0.1f, false);
             module.Pads = new List<k.ModuleDef.pad>();
-            module.Pads.Add(new k.ModuleDef.pad("", k.ModuleDef.pad.nonplated_hole,
+            module.Pads.Add(new k.ModuleDef.pad("", hole_type,
                         "circle",
                         new PointF(0, 0),
                         new SizeF(pad_diam, pad_diam),
@@ -38,9 +44,108 @@ namespace EagleConverter
             return module;
         }
 
+        private k.ModuleDef.Module NonplatedHole (float pad_diam, float drill_diam)
+        {
+            return OnePin(pad_diam, drill_diam, "@HOLE" + hole_index++, k.ModuleDef.pad.nonplated_hole);
+        }
+
+        private k.ModuleDef.Module ViaPad (float pad_diam, float drill_diam, k.Pcb.Net net)
+        {
+            k.ModuleDef.Module result = OnePin(pad_diam, drill_diam, "@V" + vpad_index++, k.ModuleDef.pad.through_hole);
+            result.attr = "virtual";
+            result.Pads[0].net = net;
+            result.Pads[0].layers = "*.Cu";
+            result.Pads[0].zone_connect = 2;
+            return result;
+        }
+
         public float GetTextThickness_mm (Text text)
         {
             return StrToVal_mm(text.Size) * int.Parse(text.Ratio) / 100f;
+        }
+
+        public float GetTextThickness_mm(string textSize, string ratio)
+        {
+            return StrToVal_mm(textSize) * int.Parse(ratio) / 100f;
+        }
+
+        private void SetPcbTextAttributes(k.ModuleDef.fp_text field,
+            PointF element_pos, ExtRotation element_rot,
+            PointF attrib_pos,  ExtRotation attrib_rot)
+        {
+            field.position.At = new PointF (attrib_pos.X - element_pos.X, (attrib_pos.Y - element_pos.Y));
+
+            float angle = MathUtil.NormalizeAngle(attrib_rot.Rotation - element_rot.Rotation);
+
+            field.position.At = field.position.At.Rotate(element_rot.Rotation);
+
+            //field.position.Rotation = angle;
+        }
+
+
+        private void AdjustPos (k.ModuleDef.fp_text field)
+        {
+            PointF offset = new PointF(field.Value.Length * field.effects.font.Size.Width * 0.8f / 2,
+                field.Value.Length * field.effects.font.Size.Height / 2f);
+
+//            field.position.At = new PointF(field.position.At.X + offset.X, field.position.At.Y + offset.Y);
+
+            switch ((int)field.position.Rotation)
+            {
+                case 0:
+                    field.position.At.X += field.Value.Length * field.effects.font.Size.Width * 0.8f / 2;
+                    field.position.At.Y -= field.effects.font.Size.Height / 2f;
+                    break;
+            }
+        }
+
+        void Test()
+        {
+            Font.NewStroke stroke_font = new Font.NewStroke();
+            string s;
+            SizeF text_size;
+
+            k.TextEffects effects = new k.TextEffects();
+            effects.font.Size = new SizeF(1f, 1f);
+
+            s = "H";
+            text_size = stroke_font.GetTextSize(s, effects);
+            Trace(string.Format("text size {0} = {1}, {2}", s, text_size.Width, text_size.Height));
+
+            s = "Hello";
+            text_size = stroke_font.GetTextSize(s, effects);
+            Trace(string.Format("text size {0} = {1}, {2}", s, text_size.Width, text_size.Height));
+        }
+
+        void DrawRect (k.Pcb.kicad_pcb k_pcb, PointF p1, SizeF size, float angle)
+        {
+            k.Pcb.gr_line k_line;
+            PointF p2 = new PointF(p1.X + size.Width, p1.Y - size.Height);
+
+            p1 = p1.RotateAt(p1, angle);
+            p2 = p2.RotateAt(p1, angle);
+
+            k_line = new k.Pcb.gr_line(new PointF(p1.X, p1.Y), new PointF(p2.X, p1.Y), "Dwgs.User", 0.01f);
+            k_pcb.Drawings.Add(k_line);
+            k_line = new k.Pcb.gr_line(new PointF(p1.X, p2.Y), new PointF(p2.X, p2.Y), "Dwgs.User", 0.01f);
+            k_pcb.Drawings.Add(k_line);
+            k_line = new k.Pcb.gr_line(new PointF(p1.X, p1.Y), new PointF(p1.X, p2.Y), "Dwgs.User", 0.011f);
+            k_pcb.Drawings.Add(k_line);
+            k_line = new k.Pcb.gr_line(new PointF(p2.X, p1.Y), new PointF(p2.X, p2.Y), "Dwgs.User", 0.011f);
+            k_pcb.Drawings.Add(k_line);
+        }
+
+        void testFont (k.Pcb.kicad_pcb k_pcb)
+        {
+            Font.NewStroke stroke_font = new Font.NewStroke();
+            k.TextEffects effects = new k.TextEffects();
+            effects.font.Size = new SizeF(2.54f, 2.54f);
+            effects.font.thickness = 0.15f;
+            stroke_font.DrawText(k_pcb, new PointF(25.4f, 25.4f), "Hello", effects, k.Layer.Drawings);
+
+            SizeF extent = stroke_font.GetTextSize("Hello", effects);
+
+            DrawRect(k_pcb, new PointF(25.4f, 25.4f), extent, 0);
         }
 
         public bool ConvertBoardFile (string SourceFilename)
@@ -52,6 +157,7 @@ namespace EagleConverter
             Trace(string.Format("Reading board file {0}", Path.ChangeExtension(SourceFilename,".brd")));
             board = EagleFile.LoadFromXmlFile(Path.ChangeExtension(SourceFilename,".brd"));
 
+            //
             if (board != null)
             {
                 // offset from bottom left
@@ -64,8 +170,9 @@ namespace EagleConverter
 
                 k_pcb.Setup.grid_origin = StrToPoint_Board("0", "0");
 
-                // paper and size
-                // first get the page size
+                //testFont(k_pcb);    // ** debug
+
+                // paper and size: get the page size
                 PageStr = "A4";
                 PageSize = new SizeF(297, 210);
                 foreach (Element element in board.Drawing.Board.Elements.Element)
@@ -107,7 +214,7 @@ namespace EagleConverter
                         );
                     k_text.horiz_align = k.TextJustify.left;
 
-                    switch (GetAngle(text.Rot))
+                    switch ((int)ExtRotation.Parse (text.Rot).Rotation)
                     {
                         case 0: break;
                         case 90:
@@ -198,20 +305,41 @@ namespace EagleConverter
                     PointF p1 = StrToPoint_Board(hole.X, hole.Y);
                     float drill = StrToVal_mm(hole.Drill);
 
-                    k_pcb.AddModule(OnePin(drill, drill), p1);
+                    k_pcb.AddModule(NonplatedHole(drill, drill), p1);
                 }
                 #endregion
 
                 #region ==== plain.dimension ====
                 foreach (Dimension dim in board.Drawing.Board.Plain.Dimension)
                 {
-                    //todo:
+                    k.LayerDescriptor layer = ConvertLayer(dim.Layer);
+                    PointF p1 = StrToPoint_Board(dim.X1, dim.Y1);
+                    PointF p2 = StrToPoint_Board(dim.X2, dim.Y2);
+                    PointF p3 = StrToPoint_Board(dim.X3, dim.Y3);
+                    float line_width = 0.15f; // default width? 
+                    float text_size = StrToVal_mm(dim.TextSize);
+                    float text_width = GetTextThickness_mm(dim.TextSize, dim.TextRatio);
 
+                    if (!string.IsNullOrEmpty(dim.Width))
+                        line_width = StrToVal_mm(dim.Width);
+
+                    switch (dim.Dtype)
+                    {
+                        case DimensionType.parallel:
+                        case DimensionType.radius:
+                        case DimensionType.diameter:
+                            k.Pcb.Dimension k_dim = new k.Pcb.Dimension(layer.Name, line_width, p1, p2, text_size, text_width,
+                                dim.Unit == GridUnit.mm, int.Parse(dim.Precision), dim.Visible == Bool.yes);
+                            k_pcb.Dimensions.Add(k_dim);
+                            break;
+                        //todo : others?
+                    }
+                    
                 }
                 #endregion
 
                 #region ==== plain.polygon ====
-                foreach (Polygon poly in board.Drawing.Board.Plain.Polygon)
+                foreach (EagleImport.Polygon poly in board.Drawing.Board.Plain.Polygon)
                 {
                     //todo
                 }
@@ -287,13 +415,17 @@ namespace EagleConverter
 
                         if (p_conn == null)
                         {
-                            Trace(string.Format("error : loose via {0},{1} {2}", via.X, via.Y, signal.Name));
+                            Trace(string.Format("note : loose via converted to pad at {0},{1} net={2}", via.X, via.Y, signal.Name));
+                            k.ModuleDef.Module k_pad = ViaPad(size, drill, k_net);
+                            k_pcb.AddModule (k_pad, pos);
                         }
-                        
-                        k_pcb.Vias.Add(k_via);
+                        else
+                        {
+                            k_pcb.Vias.Add(k_via);
+                        }
                     }
 
-                    foreach (Polygon poly in signal.Polygon)
+                    foreach (EagleImport.Polygon poly in signal.Polygon)
                     {
                         //<polygon width="0.2032" layer="1" spacing="0.254" isolate="0.254" rank="2">
                         float width = StrToVal_mm(poly.Width);
@@ -390,25 +522,102 @@ namespace EagleConverter
                         k_mod.layer = k.Layer.GetLayerName (k.Layer.nFront_Cu);
 
                         // Set position, orientation
-                        bool instance_mirror;
-                        int instance_angle = GetAngle2(element.Rot, out instance_mirror);
+                        ExtRotation elementRot = ExtRotation.Parse (element.Rot);
+                        int element_angle = (int)elementRot.Rotation;
 
-                        if (!string.IsNullOrEmpty(element.Rot))
+
+                        // todo: attributes for text
+
+                        foreach (EagleImport.Attribute attrib in element.Attribute)
                         {
-                            if (instance_mirror)
-                                k_mod.position.Rotation = (instance_angle + 180) % 360;
-                            else
-                                k_mod.position.Rotation = instance_angle;
+                            ExtRotation attrRot = ExtRotation.Parse(attrib.Rot);
+                            bool attr_mirror = attrRot.Mirror;
+                            int attr_angle = (int)attrRot.Rotation;
 
-                            if (instance_mirror)
+                            //k.Symbol.SymbolField sym_field = null;
+                            k.ModuleDef.fp_text field = null;
+                            switch (attrib.Name)
                             {
-                                k_mod.Flip(k_mod.position.At); //todo
+                                case "NAME":
+                                    //sym_field = k_symbol.fReference;
+                                    field = k_mod.Reference;
+                                    break;
+                                case "VALUE":
+                                    //sym_field = k_symbol.fValue;
+                                    field = k_mod.Value;
+                                    break;
+
+                                    // Part?
+                                    // voltage, current
+                            }
+
+                            if (field != null)
+                            {
+                                field.effects.font.Size = new SizeF( StrToVal_mm(attrib.Size), StrToVal_mm(attrib.Size));
+
+                                field.layer = ConvertLayer(attrib.Layer).Name;
+
+                                field.layer = k.Layer.MakeLayerName(k_mod.layer, field.layer);
+
+                                //field.effects.horiz_align = k.TextJustify.left;
+                                //field.effects.vert_align = k.VerticalAlign.bottom;
+
+                                SetPcbTextAttributes(field,
+                                    StrToPoint_Board(element.X, element.Y), elementRot,
+                                    StrToPoint_Board(attrib.X, attrib.Y), attrRot);
+
+                                AdjustPos(field);
+
+                                //debug
+                                if (debug)
+                                {
+                                    NewStroke stroke = new NewStroke();
+                                    PointF ptext = field.position.At;
+                                    SizeF textSize = stroke.GetTextSize(field.Value, field.effects);
+                                    ptext.X -= textSize.Width / 2;
+                                    ptext.Y += textSize.Height / 2;
+
+                                    ptext = k_mod.position.At.Add(ptext.Rotate(-elementRot.Rotation));
+
+                                    DrawRect(k_pcb, ptext, textSize, -(elementRot.Rotation + field.position.Rotation));
+
+                                    PointF p = field.position.At;
+                                    k.Pcb.gr_line k_line;
+                                    float ds = 1.27f;
+                                    PointF p1 = p.Rotate(-elementRot.Rotation);
+
+                                    k_line = new k.Pcb.gr_line(
+                                        new PointF(k_mod.position.At.X + p1.X - ds, k_mod.position.At.Y + p1.Y),
+                                        new PointF(k_mod.position.At.X + p1.X + ds, k_mod.position.At.Y + p1.Y), "Dwgs.User", 0.1f);
+                                    k_pcb.Drawings.Add(k_line);
+
+                                    k_line = new k.Pcb.gr_line(
+                                        new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y - ds),
+                                        new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y + ds), "Dwgs.User", 0.1f);
+                                    k_pcb.Drawings.Add(k_line);
+                                }
                             }
                         }
 
-                        //todo: pad connections
-                        //attributes for text
+                        // Note: the Eagle "mirror" attributes reverse side and flips about Y axis, but
+                        // Kicad "flip" reverses side and flips about X axis.
+                        // therefore mirror is equivalent to flip + rotate(180)
 
+                        if (!string.IsNullOrEmpty(element.Rot))
+                        {
+                            if (elementRot.Mirror)
+                            {
+                                k_mod.RotateBy(MathUtil.NormalizeAngle(-(element_angle + 180)));
+                                k_mod.FlipX(k_mod.position.At);
+                            }
+                            else
+                            {
+                                k_mod.RotateBy(element_angle);
+                            }
+                        }
+
+
+                        // fix up pads
                         foreach (k.ModuleDef.pad pad in k_mod.Pads)
                         {
                             string new_name = PartMap.GetNewName(element.Name);
@@ -418,7 +627,10 @@ namespace EagleConverter
                                 PinConnection contact = Contacts.Find(x => x.PartName == element.Name && x.PinName == pad.number);
 
                                 if (contact == null)
-                                    Trace(string.Format("error: contact {0} {1} not found", element.Name, pad.number));
+                                {
+                                    // may actually be a non-connect
+                                 //   Trace(string.Format("warning: contact {0} {1} not found", element.Name, pad.number));
+                                }
                                 else
                                     pad.net = k_pcb.Nets.Find(x => x.Name == contact.NetLabel);
                             }
@@ -443,9 +655,34 @@ namespace EagleConverter
 
 
 
+                // transfer some design rules
 
+                k_pcb.Setup.trace_min = designRules.GetValueFloat("msWidth");
 
+                k_pcb.Setup.via_min_size = designRules.GetValueFloat("msWidth");
+                k_pcb.Setup.via_min_drill = designRules.GetValueFloat("msDrill");
 
+                k_pcb.Setup.uvia_min_size = designRules.GetValueFloat("msMicroVia");
+                k_pcb.Setup.uvia_min_drill = designRules.GetValueFloat("msMicroVia"); // not right, but need layer thickness to calculate correctly
+
+                // allow uvia
+                // allow blind/buried via
+
+                // grid
+
+                // text and drawings
+
+                // pad
+
+                // pad mask clearance
+
+                //default netclass
+                k_pcb.NetClasses[0].clearance = designRules.GetValueFloat("mdPadVia"); 
+                k_pcb.NetClasses[0].trace_width = designRules.GetValueFloat("msWidth");
+                k_pcb.NetClasses[0].via_dia = designRules.GetValueFloat("msWidth");
+                k_pcb.NetClasses[0].via_drill = designRules.GetValueFloat("msDrill");
+                k_pcb.NetClasses[0].uvia_dia = designRules.GetValueFloat("msMicroVia");
+                k_pcb.NetClasses[0].uvia_drill = designRules.GetValueFloat("msMicroVia"); // not right
 
                 // write the KiCad file
                 string filename = Path.Combine(OutputFolder, ProjectName + ".kicad_pcb");

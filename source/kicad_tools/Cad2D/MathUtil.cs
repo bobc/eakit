@@ -27,5 +27,16 @@ namespace Cad2D
         {
             return (float)(rad / Math.PI * 180);
         }
+
+        public static float NormalizeAngle (float angle)
+        {
+            while (angle < 0)
+                angle += 360;
+
+            while (angle > 360)
+                angle -= 360;
+
+            return angle;
+        }
     }
 }

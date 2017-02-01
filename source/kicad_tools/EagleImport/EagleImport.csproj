@@ -43,6 +43,7 @@
     <Compile Include="DesignRules.cs" />
     <Compile Include="EagleFile.cs" />
     <Compile Include="EagleSchematic.cs" />
+    <Compile Include="ExtRotation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="XMLObjects.cs" />
   </ItemGroup>

@@ -18,10 +18,10 @@ namespace EagleImporter
     {
         string Company = "RMC";
         const string AppTitle = "Eagle_Importer";
-        const string AppCaption = "KiCad to EAGLE Importer";
+        const string AppCaption = "Eagle to KiCad Converter";
         string AppDataFolder;
         AppSettings AppSettings;
-        string version = "0.1";
+        string version = "0.1.0.4";
 
         public Form1()
         {

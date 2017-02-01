@@ -374,75 +374,23 @@ namespace EagleConverter
         // [MSR]0 to 359.9
         private int GetAngle(string rot)
         {
-            int result = 0;
-
-            if (!string.IsNullOrEmpty(rot))
-            {
-                if (rot.StartsWith("M"))
-                {
-                    rot = rot.Substring(1);
-                }
-                switch (rot)
-                {
-                    case "R0":
-                        result = 0;
-                        break;
-                    case "R90":
-                        result = 90;
-                        break;
-                    case "R180":
-                        result = 180;
-                        break;
-                    case "R270":
-                        result = 270;
-                        break;
-                    default:
-                        result = 0;
-                        break;
-                }
-            }
-
+            int result = (int)ExtRotation.Parse (rot).Rotation;
             return result;
         }
 
         private int xGetAngleFlip(string rot, out bool mirror)
         {
-            int result = GetAngle(rot);
+            ExtRotation extRot = ExtRotation.Parse(rot);
 
-            mirror = false;
-            if (!string.IsNullOrEmpty(rot))
-            {
-                if (rot.StartsWith("M"))
-                {
-                    mirror = true;
-                }
-                else
-                    mirror = false;
-            }
+            int result = (int)extRot.Rotation;
 
-            if (mirror)
+            if (extRot.Mirror)
                 result = (result + 180) % 360;
 
+            mirror = extRot.Mirror;
             return result;
         }
 
-        private int GetAngle2(string rot, out bool mirror)
-        {
-            int result = GetAngle(rot);
-
-            mirror = false;
-            if (!string.IsNullOrEmpty(rot))
-            {
-                if (rot.StartsWith("M"))
-                {
-                    mirror = true;
-                }
-                else
-                    mirror = false;
-            }
-
-            return result;
-        }
 
         private float DistanceBetweenPoints(Point a, Point b)
         {
@@ -631,9 +579,9 @@ namespace EagleConverter
                     case "ReferenceLS": result.Name = "Cmts.User"; break;
 
                     // 51
-                    case "tDocu": result.Name = "Dwgs.User"; break;
+                    case "tDocu": result.Name = "F.Fab"; break;
                     // 52
-                    case "bDocu": result.Name = "Dwgs.User"; break;
+                    case "bDocu": result.Name = "B.Fab"; break;
 
                     default:
                         Trace(string.Format("warning: layer not found: {0}", number, layer.Name));
@@ -649,7 +597,7 @@ namespace EagleConverter
         private void GetSymbol(Library lib, Deviceset devset, k.Symbol.Symbol k_sym)
         {
             bool is_multi_part = false;
-            bool interchangeable_units = true;
+            bool interchangeable_units = false;
             string symbol_name = devset.Gates.Gate[0].Symbol;
 
             if (devset.Gates.Gate.Count == 1)
@@ -737,7 +685,9 @@ namespace EagleConverter
                         k.Symbol.sym_text k_text = new k.Symbol.sym_text(unit, text.mText, 0, StrToPointInch(text.X, text.Y), StrToInch(text.Size),
                             false, false, false, k.Symbol.SymbolField.HorizAlign_Left, k.Symbol.SymbolField.VertAlign_Bottom);
 
-                        k_text.Text.xAngle = GetAngle2(text.Rot, out k_text.Text.xMirror);
+                        //ExtRotation extRot = ExtRotation.Parse(text.Rot);
+                        k_text.Text.xAngle = GetAngle(text.Rot);
+
                         k_text.Text.Angle = xGetAngleFlip(text.Rot, out k_text.Text.xMirror);
 
                         string t = text.mText.ToUpperInvariant();
@@ -824,6 +774,26 @@ namespace EagleConverter
                         default:
                             k_pin.Type = "B";
                             break;
+                    }
+
+                    if (k_sym.PowerSymbol)
+                    {
+                        k_pin.Type = k.Symbol.sym_pin.dir_power_in;
+                        k_pin.PinNumber = "~";
+                        k_pin.Visible = false;
+                        // todo add line...
+
+                        if (k_pin.Length!=0)
+                        {
+                            PointF p1 = k_pin.Pos;
+                            PointF p2 = new PointF( k_pin.Pos.X + k_pin.Length, k_pin.Pos.Y);
+
+                            p2 = PointFExt.Rotate(p2, k_pin.Pos, GetAngle(pin.Rot) );
+
+                            k_sym.Drawings.Add(new k.Symbol.sym_polygon(unit, 6, 
+                                k.Symbol.FillTypes.None,
+                                new List<PointF>() { p1, p2 }));
+                        }
                     }
 
                     switch (pin.Function)
@@ -955,6 +925,12 @@ namespace EagleConverter
                             new SizeF(StrToVal_mm(text.Size), StrToVal_mm(text.Size)),
                             0.12f,
                             true);
+
+                        // adjust position for center, center alignment
+                        k_text.position.At.Y -= k_text.effects.font.Size.Height / 2;
+                        k_text.position.At.X += k_text.effects.font.Size.Width * k_text.Value.Length * 0.8f / 2;
+
+                        //k_text.effects.horiz_align = k.TextJustify.left;
 
                         if (text.mText.StartsWith(">"))
                         {
@@ -1299,63 +1275,33 @@ namespace EagleConverter
             float instance_angle, bool instance_mirror, 
             PointF comp_pos, int attr_angle, bool attr_mirror)
         {
+            int i_angle = (int)instance_angle;
             int x = (int)text_pos.X;
             int y = (int)text_pos.Y;
-
-            int i_angle = (int)instance_angle;
-
-            char orient = 'H';
-            char hAlign = 'L';
-            char vAlign = 'B';
-
-            float rotation = instance_angle ;//+ 180; // - 90;
 
             // calculate text position from origin of component
             int diffX = (int)comp_pos.X - x;
             int diffY = (int)comp_pos.Y - y;
 
-            //if (mirror)
-            {
-            //    diffX = -diffX;
-            }
-
-            //if (!attr_mirror)
-            //{
-            //    diffY = -diffY;
-            //}
-
-            int px, py;
             if (!instance_mirror)
             {
-                //diffX = -diffX;
                 diffY = -diffY;
-                rotation = rotation+180;
-
-                // rotate offset position about origin by rotation degrees (anti-clockwise)
-                //px = (int)(Math.Cos(MathUtil.DegToRad(rotation)) * diffX - Math.Sin(MathUtil.DegToRad(rotation)) * diffY);
-                //py = (int)(Math.Sin(MathUtil.DegToRad(rotation)) * diffX + Math.Cos(MathUtil.DegToRad(rotation)) * diffY);
-
-                // rotate offset position about origin by rotation degrees (clockwise)
-                px = (int)(Math.Cos(MathUtil.DegToRad(rotation)) * diffX + Math.Sin(MathUtil.DegToRad(rotation)) * diffY);
-                py = (int)(-Math.Sin(MathUtil.DegToRad(rotation)) * diffX + Math.Cos(MathUtil.DegToRad(rotation)) * diffY);
-
-                x = (int)(comp_pos.X + px);
-                y = (int)(comp_pos.Y + py);
+                instance_angle = instance_angle + 180;
             }
-            else
-            {
-                // rotate offset position about origin by rotation degrees (clockwise)
-                px = (int)(Math.Cos(MathUtil.DegToRad(rotation)) * diffX + Math.Sin(MathUtil.DegToRad(rotation)) * diffY);
-                py = (int)(-Math.Sin(MathUtil.DegToRad(rotation)) * diffX + Math.Cos(MathUtil.DegToRad(rotation)) * diffY);
+            // rotate offset position about origin by rotation degrees (clockwise)
+            int px, py;
+            px = (int)(Math.Cos(MathUtil.DegToRad(instance_angle)) * diffX + Math.Sin(MathUtil.DegToRad(instance_angle)) * diffY);
+            py = (int)(-Math.Sin(MathUtil.DegToRad(instance_angle)) * diffX + Math.Cos(MathUtil.DegToRad(instance_angle)) * diffY);
 
-                x = (int)(comp_pos.X + px);
-                y = (int)(comp_pos.Y + py);
-            }
+            x = (int)(comp_pos.X + px);
+            y = (int)(comp_pos.Y + py);
 
-            // calculate difference in coordinate so we can properly flip this coordinate system
-            //x = (int)(comp_pos.X + py);
-            //y = (int)(comp_pos.Y + px);
+            field.Pos = new PointF(x, y);
 
+            // now figure orientation, alignment
+            char orient = 'H';
+            char hAlign = 'L';
+            char vAlign = 'B';
 
             switch (i_angle)
             {
@@ -1512,7 +1458,7 @@ namespace EagleConverter
             field.Orientation = orient.ToString();
             field.HorizJustify = hAlign.ToString();
             field.VertJustify = vAlign.ToString();
-            field.Pos = new PointF(x, y);
+            
              
         }
 
@@ -1680,8 +1626,9 @@ namespace EagleConverter
 
                 // ---------------------------------
                 // Set position, orientation
-                bool instance_mirror;
-                int instance_angle = GetAngle2(instance.Rot, out instance_mirror);
+                ExtRotation instanceRot = ExtRotation.Parse(instance.Rot);
+                bool instance_mirror = instanceRot.Mirror;
+                int instance_angle = (int)instanceRot.Rotation;
 
                 if (!string.IsNullOrEmpty(instance.Rot))
                 {
@@ -1694,8 +1641,9 @@ namespace EagleConverter
 
                 foreach (EagleImport.Attribute attrib in instance.Attribute)
                 {
-                    bool attr_mirror;
-                    int attr_angle = GetAngle2(attrib.Rot, out attr_mirror);
+                    ExtRotation attrRot = ExtRotation.Parse(attrib.Rot);
+                    bool attr_mirror = attrRot.Mirror;
+                    int attr_angle = (int)attrRot.Rotation;
 
                     //int angle = GetAngle(attrib.Rot);
                     //angle %= 360;
@@ -1734,7 +1682,7 @@ namespace EagleConverter
 
                         //debug
                         // field pos rotated about comp pos
-                        PointF p = PointFExt.RotatePoint(field.Pos, k_comp.Position, k_comp.Rotation);
+                        PointF p = PointFExt.Rotate(field.Pos, k_comp.Position, k_comp.Rotation);
                         k.Schema.sch_wire k_line;
 
                         //// field pos  +
@@ -1843,15 +1791,15 @@ namespace EagleConverter
 
                     foreach (Label label in segment.Label)
                     {
-                        bool mirror;
+                        ExtRotation rot = ExtRotation.Parse(label.Rot);
+                        
                         sch_text k_text = sch_text.CreateLocalLabel(net.Name,
                             StrToPointInchFlip(label.X, label.Y),
                             StrToInch(label.Size),
-                            GetAngle2(label.Rot, out mirror), false, false);
+                            (int)rot.Rotation, false, false);
 
                         // find nearest point
                         //k_text.Pos = FindSnapPoint(snap_points, k_text.Pos);
-
                         k_text.Pos = FindNearestPoint(snap_points, snap_lines, Vector2Ext.ToVector2(StrToPointInchFlip(label.X, label.Y)));
 
                         k_sheet.Items.Add(k_text);
@@ -1901,9 +1849,10 @@ namespace EagleConverter
                         PointF instance_pos = StrToPointInchFlip(instance.X, instance.Y);
                         PointF pin_pos = StrToPointInch(pin.X, pin.Y);
 
-                        bool instance_mirror;
-                        pin_pos = PointFExt.RotatePoint(pin_pos, GetAngle2(instance.Rot, out instance_mirror));
-                        if (instance_mirror)
+                        ExtRotation rot = ExtRotation.Parse(instance.Rot);
+                        
+                        pin_pos = PointFExt.Rotate(pin_pos, (int)rot.Rotation);
+                        if (rot.Mirror)
                             pin_pos = new PointF(-pin_pos.X, pin_pos.Y);
 
                         PointF pos = new PointF (instance_pos.X + pin_pos.X, instance_pos.Y - pin_pos.Y);

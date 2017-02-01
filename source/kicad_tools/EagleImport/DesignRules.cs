@@ -12,7 +12,7 @@ namespace EagleImport
         ///<summary>percent over 100%.  0-> not elongated, 100->twice as wide as is tall
         ///Goes into making a scaling factor for "long" pads.
         ///</summary>
-        int psElongationLong
+        public int psElongationLong
         {
             get
             {
@@ -21,7 +21,7 @@ namespace EagleImport
         }
 
         ///<summary>the offset of the hole within the "long" pad.</summary>
-        int psElongationOffset
+        public int psElongationOffset
         {
             get
             {
@@ -31,7 +31,7 @@ namespace EagleImport
 
 
         ///<summary>top pad size as percent of drill size</summary> 
-        float rvPadTop
+        public float rvPadTop
         {
             get
             {
@@ -43,7 +43,7 @@ namespace EagleImport
         // double   rvPadBottom;        
 
         ///<summary>minimum copper annulus on through hole pads</summary>
-        float rlMinPadTop
+        public float rlMinPadTop
         {
             get
             {
@@ -52,7 +52,7 @@ namespace EagleImport
         }
 
         ///<summary>maximum copper annulus on through hole pads</summary>
-        float rlMaxPadTop
+        public float rlMaxPadTop
         {
             get
             {
@@ -61,7 +61,7 @@ namespace EagleImport
         }
 
         ///<summary>copper annulus is this percent of via hole</summary>
-        float rvViaOuter
+        public float rvViaOuter
         {
             get
             {
@@ -70,7 +70,7 @@ namespace EagleImport
         }
 
         ///<summary> minimum copper annulus on via</summary>
-        float rlMinViaOuter
+        public float rlMinViaOuter
         {
             get
             {
@@ -79,7 +79,7 @@ namespace EagleImport
         }
 
         ///<summary> maximum copper annulus on via</summary>
-        float rlMaxViaOuter
+        public float rlMaxViaOuter
         {
             get
             {
@@ -88,7 +88,7 @@ namespace EagleImport
         }
 
         ///<summary> wire to wire spacing I presume.</summary>
-        float mdWireWire
+        public float mdWireWire
         {
             get
             {
