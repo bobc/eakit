@@ -11,6 +11,7 @@ Status : alpha test
 Limitations
 
 - eakit is only supported on Windows 7 or later
+- requires .NET 4.
 - eakit can only read Eagle XML files, so Eagle projects must be saved in Eagle v6 or later 
 
 
@@ -62,7 +63,7 @@ to the nearest equivalent in KiCad
 
 - not converted
                                                                                    
-
+TODO
 
 
 
@@ -78,4 +79,4 @@ eakit uses Open Toolkit Library (OpenTK). This can be installed via NuGet packag
 
 = Trademarks =
 
-EAGLE(tm) is a registered trademark of Autodesk Inc.
+Eagle(tm) is a registered trademark of Autodesk Inc.
