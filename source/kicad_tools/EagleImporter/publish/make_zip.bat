@@ -15,7 +15,7 @@ set flags=
 
 echo Zipping files..
 del %zzzname%.zip
-%zip% -add %flags% %zzzname%.zip EagleImporter.application setup.exe "Application Files\EagleImporter_%version%\*.*"  -Path -recurse
+%zip% -add %flags% %zzzname%.zip .\EagleImporter.application setup.exe "Application Files\EagleImporter_%version%\*.*"  -Path
 
 echo Calculating sum..
 CertUtil -hashfile %zzzname%.zip SHA256 >hash_%version%.txt

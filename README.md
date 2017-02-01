@@ -33,10 +33,19 @@ Additional copyrights :
 Installation
 ------------
 
-1. Download a zipped copy of repository
+1. Download latest version from https://github.com/bobc/eakit/releases
 2. Unzip to local folder
-3. Unzip file release/eakit_x_x_x_x.zip
-4. Run setup.exe
+  - hash_xxxx.txt contains an SHA256 hash of the release zip
+3. Run setup.exe
+
+Privacy
+-------
+eakit does the following:
+- read/writes file locations on your PC that you specify at runtime
+- stores settings in %APPDATA%\RMC\Eagle_Importer\Eagle_Importer.config.xml
+  - position and size of main window, last source file name, last destination folder
+
+eakit does not make any network connections 
 
 Running eakit
 -------------
