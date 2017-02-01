@@ -26,6 +26,11 @@ namespace Kicad_utils.ModuleDef
             this.width = width;
         }
 
+        public override void FlipX(PointF pos)
+        {
+            throw new NotImplementedException();
+        }
+
         public override SExpression GetSExpression()
         {
             SExpression result = new SExpression();

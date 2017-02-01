@@ -5,6 +5,7 @@ using System.Text;
 
 using System.Drawing;
 
+using Cad2D;
 using SExpressions;
 using Kicad_utils.Pcb;
 
@@ -97,6 +98,17 @@ namespace Kicad_utils.ModuleDef
                 case "np_thru_hole":
                     this.layers = "*.Cu"; break;
             }
+        }
+
+        public void FlipX(PointF pos)
+        {
+            // trapezoid, oval shapes etc ?
+            // round, rect are symmetric
+
+            layers = Layer.ToString(Layer.FlipLayers(Layer.ParseLayers(layers)));
+
+            position.At = position.At.FlipX();
+            //pad.position.Rotation = -pad.position.Rotation + 360;
         }
 
         public SExpression GetSExpression()

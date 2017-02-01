@@ -16,6 +16,15 @@ namespace Kicad_utils
 
         public bool italic;
 
+        // public bool bold; //?
+
+        public FontAttributes()
+        {
+            Size = new SizeF(1, 1);
+            thickness = 0.0254f;
+            italic = false;
+        }
+
         public SExpression GetSExpression()
         {
             SExpression font = new SExpression();

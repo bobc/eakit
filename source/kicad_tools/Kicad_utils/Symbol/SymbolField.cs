@@ -113,8 +113,8 @@ namespace Kicad_utils.Symbol
 
             string result = string.Format("\"{0}\" {1} {2} {3} {4} {5} {6} {7}{8}{9}",
                 Text.Value,
-                Text.Pos.X, Text.Pos.Y,
-                Text.FontSize,
+                (int)Text.Pos.X, (int)Text.Pos.Y,
+                (int)Text.FontSize,
                 Text.Angle == 0 ? "H" : "V",
                 Text.Visible ? "V" : "I",
                 Text.HorizAlignment,

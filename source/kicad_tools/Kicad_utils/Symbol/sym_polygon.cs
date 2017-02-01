@@ -59,9 +59,9 @@ namespace Kicad_utils.Symbol
                 NumVertex,
                 Unit,
                 DeMorganAlternate,
-                PenSize);
+                (int)PenSize);
             for (int j = 0; j < NumVertex; j++)
-                result += string.Format(" {0} {1}", Vertex[j].X, Vertex[j].Y);
+                result += string.Format(" {0} {1}", (int)Vertex[j].X, (int)Vertex[j].Y);
 
             result += string.Format(" {0}", sym_drawing_base.FillTypeToString(Fill));
             return result;

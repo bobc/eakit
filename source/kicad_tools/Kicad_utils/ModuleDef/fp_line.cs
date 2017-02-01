@@ -6,6 +6,7 @@ using System.Text;
 using System.Drawing;
 
 using SExpressions;
+using Cad2D;
 
 namespace Kicad_utils.ModuleDef
 {
@@ -25,6 +26,15 @@ namespace Kicad_utils.ModuleDef
             this.layer = layer;
             this.width = width;
         }
+
+        public override void FlipX(PointF pos)
+        {
+            base.FlipX(pos);
+
+            start = PointFExt.FlipX(start);
+            end = PointFExt.FlipX(end);
+        }
+
 
         public override SExpression GetSExpression()
         {

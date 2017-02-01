@@ -5,6 +5,7 @@ using System.Text;
 
 using System.Drawing;
 
+using Cad2D;
 using SExpressions;
 using Kicad_utils.ModuleDef;
 
@@ -12,13 +13,30 @@ namespace Kicad_utils.Pcb
 {
     public class DimensionFeature
     {
+        public static string Feature1 = "feature1";
+        public static string Feature2 = "feature2";
+        public static string Crossbar = "crossbar";
+        public static string Arrow1a = "arrow1a";
+        public static string Arrow1b = "arrow1b";
+        public static string Arrow2a = "arrow2a";
+        public static string Arrow2b = "arrow2b";
+
         public string Name;
-        public List<PointF> polygon;
+        public List<PointF> Polygon;
 
         public DimensionFeature()
         {
-            polygon = new List<PointF>();
+            Polygon = new List<PointF>();
         }
+
+        public DimensionFeature (string name, PointF p1, PointF p2)
+        {
+            Name = name;
+            Polygon = new List<PointF>();
+            Polygon.Add(p1);
+            Polygon.Add(p2);
+        }
+
 
         public SExpression GetSExpression()
         {
@@ -26,7 +44,7 @@ namespace Kicad_utils.Pcb
 
             result.Name = Name;
             result.Items = new List<SNodeBase>();
-            result.Items.Add(fp_polygon.GetPointList(polygon));
+            result.Items.Add(fp_polygon.GetPointList(Polygon));
 
             return result;
         }
@@ -40,6 +58,11 @@ namespace Kicad_utils.Pcb
             "arrow2a",
             "arrow2b"
         };
+
+        public void RotateBy(float angle)
+        {
+            //todo: ???
+        }
 
         public static DimensionFeature Parse(SExpression root_node)
         {
@@ -61,6 +84,7 @@ namespace Kicad_utils.Pcb
                     switch (sub.Name)
                     {
                         case "pts": //TODO: get points
+                            
                             break;
                     }
                     index++;

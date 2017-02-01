@@ -60,15 +60,15 @@ namespace Kicad_utils.Symbol
         public override string ToString()
         {
             return string.Format("A {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12}",
-                Position.X, Position.Y,
-                Radius,
+                (int)Position.X, (int)Position.Y,
+                (int)Radius,
                 (int)(ArcStart * 10), (int)(ArcEnd * 10),
                 Unit,
                 DeMorganAlternate,
-                PenSize,
+                (int)PenSize,
                 sym_drawing_base.FillTypeToString(Fill),
-                Start.X, Start.Y,
-                End.X, End.Y
+                (int)Start.X, (int)Start.Y,
+                (int)End.X, (int)End.Y
                 );
         }
     }

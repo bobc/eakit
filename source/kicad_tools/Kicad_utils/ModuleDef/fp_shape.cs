@@ -17,5 +17,14 @@ namespace Kicad_utils.ModuleDef
         public float width;
 
         public abstract SExpression GetSExpression();
+
+        /// <summary>
+        /// Performs the KiCad "flip" function.
+        /// </summary>
+        /// <param name="pos"></param>
+        public virtual void FlipX(PointF pos)
+        {
+            layer = Layer.FlipLayer(layer);
+        }
     }
 }

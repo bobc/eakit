@@ -96,26 +96,50 @@ namespace Kicad_utils.ModuleDef
         }
 
 
-        public void Flip (PointF pos)
+        // this performs the KiCad "flip" operation
+        public void FlipX (PointF pos)
         {
-            //swap front to back, and flip coords on X axis
+            //swap front to back, and flip coords about X axis
 
-            position.Rotation = 360 - position.Rotation;
+            //position.Rotation = 360 - position.Rotation;
 
             //TODO: this needs list of pcb layers
-            if (layer == "F.Cu")
-                layer = "B.Cu";
-            else
-                layer = "F.Cu";
+            layer = Layer.FlipLayer(layer);
 
             foreach (pad pad in Pads)
             {
-                pad.layers = Layer.ToString(Layer.FlipLayers(Layer.ParseLayers(pad.layers)));
-                pad.position.At.Y = -pad.position.At.Y;
-                pad.position.Rotation = -pad.position.Rotation + 360;
+                pad.FlipX(pos);
             }
-        }
+            
+            Reference.FlipX(pos);
+            Value.FlipX(pos);
 
+            if (UserText != null)
+                foreach (fp_text text in UserText)
+                    text.FlipX(pos);
+
+            if (Borders != null)
+                foreach (fp_shape shape in Borders) // todo...
+                    shape.FlipX(pos);
+
+            
+
+            // public List<model> CadModels; //?
+
+        }
+    
+        public void RotateBy (float angle)
+        {
+            position.Rotation = MathUtil.NormalizeAngle (position.Rotation + angle);
+
+            Reference.RotateBy(angle);
+            Value.RotateBy(angle);
+
+            if (UserText != null)
+                foreach (fp_text text in UserText)
+                    text.RotateBy(angle);
+
+        }
 
         void addToExtent (ref PointF min, ref PointF max, PointF p)
         {

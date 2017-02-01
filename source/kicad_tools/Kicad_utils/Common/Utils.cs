@@ -13,6 +13,13 @@ namespace Kicad_utils
 {
     public class Utils
     {
+        public static string YesNo(bool value)
+        {
+            if (value)
+                return "yes";
+            else
+                return "no";
+        }
 
         // set text size of Gloal labels to standard size
         public static bool ProcessSchematic(string filename)

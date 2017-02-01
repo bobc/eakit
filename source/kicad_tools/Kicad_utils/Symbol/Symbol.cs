@@ -24,7 +24,7 @@ namespace Kicad_utils.Symbol
         public bool ShowPinNumber;
         public bool ShowPinName;
         public int NumUnits = 1;
-        public bool Locked = false;
+        public bool Locked = true;
         public bool PowerSymbol = false;
 
         // units_locked : (Used only if unit_count > 1)

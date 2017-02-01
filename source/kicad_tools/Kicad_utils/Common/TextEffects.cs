@@ -9,11 +9,14 @@ namespace Kicad_utils
 {
     public enum TextJustify { left, center, right };
 
+    public enum VerticalAlign { bottom, center, top };
+
     public class TextEffects
     {
         public FontAttributes font;
 
         public TextJustify horiz_align;
+        public VerticalAlign vert_align;
         public bool mirror;
 
         public TextEffects()
@@ -21,6 +24,7 @@ namespace Kicad_utils
             font = new FontAttributes();
 
             horiz_align = TextJustify.center;
+            vert_align = VerticalAlign.center;
             mirror = false;
         }
 
@@ -37,10 +41,16 @@ namespace Kicad_utils
                 SExpression justify = new SExpression();
                 justify.Name = "justify";
                 justify.Items = new List<SNodeBase>();
+
                 if (horiz_align == TextJustify.left)
                     justify.Items.Add(new SNodeAtom("left"));
                 else if (horiz_align == TextJustify.right)
                     justify.Items.Add(new SNodeAtom("right"));
+
+                if (vert_align == VerticalAlign.bottom)
+                    justify.Items.Add(new SNodeAtom("bottom"));
+                else if (vert_align == VerticalAlign.top)
+                    justify.Items.Add(new SNodeAtom("top"));
 
                 if (mirror)
                     justify.Items.Add(new SNodeAtom("mirror"));
@@ -88,8 +98,11 @@ namespace Kicad_utils
                                         case "right":
                                             result.horiz_align = TextJustify.right;
                                             break;
-                                        case "center":
-                                            result.horiz_align = TextJustify.center;
+                                        case "top":
+                                            result.vert_align = VerticalAlign.top;
+                                            break;
+                                        case "bottom":
+                                            result.vert_align = VerticalAlign.bottom;
                                             break;
                                     }
                                 }

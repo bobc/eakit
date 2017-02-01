@@ -150,9 +150,15 @@ namespace Kicad_utils
             }
         }
 
-        // e.g. ChangeLayer ("F.SilkS", "Fab") ==> F.Fab
+        // 
 
-        // e.g. ChangeLayer ("B.Fab", "Front") ==> F.Fab
+        /// <summary>
+        /// e.g. ChangeLayer ("F.SilkS", "Fab") ==> F.Fab 
+        /// e.g. ChangeLayer ("B.Fab", "Front") ==> F.Fab
+        /// </summary>
+        /// <param name="layer"></param>
+        /// <param name="new_layer"></param>
+        /// <returns></returns>
         public static string ChangeLayer(string layer, string new_layer)
         {
             string old_prefix = "";
@@ -391,6 +397,19 @@ namespace Kicad_utils
 
             };
 
+        public static string FlipLayer (string layer)
+        {
+            //TODO: this needs list of pcb layers
+            if (layer.StartsWith("F."))
+            {
+                layer = Layer.MakeLayerName("B", layer);
+            }
+            else if (layer.StartsWith("B."))
+            {
+                layer = Layer.MakeLayerName("F", layer);
+            }    
+            return layer;
+        }
 
         // parsing
         // parse single layer

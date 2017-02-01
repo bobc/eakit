@@ -53,9 +53,9 @@ namespace Kicad_utils.Symbol
         {
             // T angle X Y       size hidden part dmg text italic bold Halign Valign
             return string.Format("T {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}",
-                Text.Angle * 10.0,
-                Text.Pos.X, Text.Pos.Y,
-                Text.FontSize,
+                (int)(Text.Angle * 10.0),
+                (int)Text.Pos.X, (int)Text.Pos.Y,
+                (int)Text.FontSize,
                 Text.Visible ? "0" : "1",   // hidden
                 Unit,
                 DeMorganAlternate,

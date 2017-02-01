@@ -6,6 +6,7 @@ using System.Text;
 using System.Drawing;
 
 using SExpressions;
+using Cad2D;
 
 namespace Kicad_utils.ModuleDef
 {
@@ -54,6 +55,16 @@ namespace Kicad_utils.ModuleDef
             Polygon.Add(new PointF(rect.Right, rect.Bottom));
         }
 
+        public override void FlipX(PointF pos)
+        {
+            base.FlipX(pos);
+
+            for (int j = 0; j < Polygon.Count; j++)
+            {
+                Polygon[j] = PointFExt.FlipX (Polygon[j]);
+            }
+        }
+
         public override SExpression GetSExpression()
         {
             SExpression result = new SExpression();
@@ -87,7 +98,7 @@ namespace Kicad_utils.ModuleDef
             // DP 0 0 0 0 <count> 0.15 21
             return string.Format("DS 0 0 0 0 {0} {1} {2}",
                 Polygon.Count,
-                width,
+                (int)width,
                 Layer.GetLayerNumber_Legacy(layer));
 
             // Dl 
@@ -117,5 +128,6 @@ namespace Kicad_utils.ModuleDef
             else
                 return null;  // error
         }
+
     }
 }

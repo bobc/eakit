@@ -12,29 +12,37 @@ namespace Kicad_utils.Pcb
     public class Setup
     {
         public float last_trace_width;
-        public float trace_clearance;
         public float zone_clearance;
         public bool zone_45_only; // yes, no
-        public float trace_min;
-        public float segment_width;
         public float edge_width;
+
+        //
+        public float trace_clearance;
+        public float segment_width;
         public float via_size;
         public float via_drill;
-        public float via_min_size;
-        public float via_min_drill;
         public float uvia_size;
         public float uvia_drill;
+
+        //
         public bool uvias_allowed; // no;
+        public float trace_min;
+        public float via_min_size;
+        public float via_min_drill;
         public float uvia_min_size;
         public float uvia_min_drill;
+        //
+
         public float pcb_text_width;
         public SizeF pcb_text_size;
         public float mod_edge_width;
         public SizeF mod_text_size;
         public float mod_text_width;
+
         public SizeF pad_size;
         public float pad_drill;
         public float pad_to_mask_clearance;
+
         public PointF grid_origin;
         public PointF aux_axis_origin;
 
@@ -87,7 +95,7 @@ namespace Kicad_utils.Pcb
             result.Items.Add(new SExpression("last_trace_width", last_trace_width));
             result.Items.Add(new SExpression("trace_clearance", trace_clearance));
             result.Items.Add(new SExpression("zone_clearance", zone_clearance));
-            result.Items.Add(new SExpression("zone_45_only", YesNo(zone_45_only)));
+            result.Items.Add(new SExpression("zone_45_only", Utils.YesNo(zone_45_only)));
             result.Items.Add(new SExpression("trace_min", trace_min));
             result.Items.Add(new SExpression("segment_width", segment_width));
             result.Items.Add(new SExpression("edge_width", edge_width));
@@ -97,7 +105,7 @@ namespace Kicad_utils.Pcb
             result.Items.Add(new SExpression("via_min_drill", via_min_drill));
             result.Items.Add(new SExpression("uvia_size", uvia_size));
             result.Items.Add(new SExpression("uvia_drill", uvia_drill));
-            result.Items.Add(new SExpression("uvias_allowed", YesNo(zone_45_only)));
+            result.Items.Add(new SExpression("uvias_allowed", Utils.YesNo(zone_45_only)));
             result.Items.Add(new SExpression("uvia_min_size", uvia_min_size));
             result.Items.Add(new SExpression("uvia_min_drill", uvia_min_drill));
             result.Items.Add(new SExpression("pcb_text_width", pcb_text_width));
@@ -108,7 +116,10 @@ namespace Kicad_utils.Pcb
             result.Items.Add(new SExpression("pad_size", pad_size));
             result.Items.Add(new SExpression("pad_drill", pad_drill));
             result.Items.Add(new SExpression("pad_to_mask_clearance", pad_to_mask_clearance));
+
+            result.Items.Add(new SExpression("grid_origin", grid_origin));
             result.Items.Add(new SExpression("aux_axis_origin", aux_axis_origin));
+
             result.Items.Add(new SExpression("visible_elements", visible_elements.ToString("X")));
 
             result.Items.Add(pcb_plot_params.GetSExpression());
@@ -116,12 +127,5 @@ namespace Kicad_utils.Pcb
             return result;
         }
 
-        public static string YesNo(bool value)
-        {
-            if (value)
-                return "yes";
-            else
-                return "no";
-        }
     }
 }

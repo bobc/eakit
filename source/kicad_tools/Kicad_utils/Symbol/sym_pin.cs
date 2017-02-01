@@ -50,6 +50,11 @@ namespace Kicad_utils.Symbol
         public string Shape;
         public bool Visible;
 
+        public const string dir_input = "I";
+        public const string dir_output = "O";
+        public const string dir_power_in = "W";
+        public const string dir_power_out = "w";
+
         public sym_pin()
         {
             Visible = true;
@@ -77,15 +82,16 @@ namespace Kicad_utils.Symbol
         public override string ToString()
         {
             // X name pin X Y length orientation sizenum sizename part dmg type shape
-            return string.Format("X {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}",
+            return string.Format("X {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}{12}",
                 Name,
                 PinNumber,
-                Pos.X, Pos.Y,
+                (int)Pos.X, (int)Pos.Y,
                 Length, Orientation,
-                SizeNum, SizeName,
+                (int)SizeNum, (int)SizeName,
                 Unit, DeMorganAlternate,
-                Type,
-                Shape
+                Type,   //10
+                Visible ? "" : "N",
+                Shape   //11
                 );
         }
 

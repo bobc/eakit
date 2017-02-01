@@ -6,6 +6,7 @@ using System.Text;
 using System.Drawing;
 
 using SExpressions;
+using Cad2D;
 
 namespace Kicad_utils.ModuleDef
 {
@@ -15,9 +16,8 @@ namespace Kicad_utils.ModuleDef
 
         public string Value;    // text
 
+        // rotation = 0 or 90
         public Position position;
-        //public PointF at;
-        //public float rotation = 0;  // degrees, 0 or 90
 
         public string layer;
         public bool visible;    // default: true
@@ -73,6 +73,47 @@ namespace Kicad_utils.ModuleDef
             this.effects.font.thickness = thickness;
             this.effects.font.italic = italic;
         }
+
+        public void FlipX(PointF pos)
+        {
+            layer = Layer.FlipLayer(layer);
+
+            effects.mirror = !effects.mirror;
+
+            position.At = position.At.FlipX();
+            // todo : if vertical text , flip l/r justify
+        }
+
+        public void RotateBy(float angle)
+        {
+            float final_angle = MathUtil.NormalizeAngle(position.Rotation + angle);
+
+            //position.At = position.At.Rotate(angle);
+
+            switch ((int)final_angle)
+            {
+                case 0: position.Rotation = 0;
+                    if (effects.horiz_align != TextJustify.center)
+                        effects.horiz_align = TextJustify.left;
+                    break;
+                case 90:
+                    position.Rotation = 90;
+                    if (effects.horiz_align != TextJustify.center)
+                        effects.horiz_align = TextJustify.left;
+                    break;
+                case 180:
+                    position.Rotation = 0;
+                    if (effects.horiz_align != TextJustify.center)
+                        effects.horiz_align = TextJustify.right;
+                    break;
+                case 270:
+                    position.Rotation = 90;
+                    if (effects.horiz_align != TextJustify.center)
+                        effects.horiz_align = TextJustify.right;
+                    break;
+            }
+        }
+
 
         public SExpression GetSExpression()
         {

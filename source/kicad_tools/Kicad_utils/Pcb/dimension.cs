@@ -5,6 +5,7 @@ using System.Text;
 
 using System.Drawing;
 
+using Cad2D;
 using SExpressions;
 using Kicad_utils.ModuleDef;
 
@@ -16,6 +17,9 @@ namespace Kicad_utils.Pcb
         public float length;
         public float width;
         public gr_text caption;
+
+        public PointF Start;
+        public PointF End;
 
         public List<DimensionFeature> Features;
 
@@ -44,9 +48,86 @@ namespace Kicad_utils.Pcb
           )
         */
 
-        public Dimension(string layer, float width, PointF start, PointF end, bool is_mm)
+        public Dimension(string layer, float width, PointF start, PointF end, 
+            float text_size, float text_width,
+            bool is_mm, int precision, bool show_units)
         {
+            this.layer = layer;
+            this.width = width;
+            this.Start = start;
+            this.End = end;
+            this.length = PointFExt.DistanceBetweenPoints(start, end);
 
+            float height = -2 * text_size;
+            SizeF arrow_head = new SizeF(1f, 0.2f);
+            PointF normalised_end = new PointF(start.X + length, start.Y);
+            double angle = MathUtil.RadToDeg (Math.Atan2(end.Y - start.Y, end.X - start.X));
+
+            // create the dimension line assuming angle = 0
+
+            Features = new List<DimensionFeature>();
+            Features.Add(new DimensionFeature(DimensionFeature.Crossbar, 
+                new PointF(start.X, start.Y + height / 2),
+                new PointF(normalised_end.X, start.Y + height / 2)
+                ));
+
+            Features.Add(new DimensionFeature(DimensionFeature.Feature1,
+                new PointF(start.X, start.Y ),
+                new PointF(start.X, start.Y + height)
+                ));
+
+            Features.Add(new DimensionFeature(DimensionFeature.Feature2,
+                new PointF(normalised_end.X, start.Y),
+                new PointF(normalised_end.X, start.Y + height)
+                ));
+
+            Features.Add(new DimensionFeature(DimensionFeature.Arrow1a,
+                new PointF(start.X, start.Y + height / 2),
+                new PointF(start.X + arrow_head.Width, start.Y + height / 2 + arrow_head.Height)
+                ));
+            Features.Add(new DimensionFeature(DimensionFeature.Arrow1b,
+                new PointF(start.X, start.Y + height / 2),
+                new PointF(start.X + arrow_head.Width, start.Y + height / 2 - arrow_head.Height)
+                ));
+
+            Features.Add(new DimensionFeature(DimensionFeature.Arrow2a,
+                new PointF(normalised_end.X, start.Y + height / 2),
+                new PointF(normalised_end.X - arrow_head.Width, start.Y + height / 2 + arrow_head.Height)
+                ));
+
+            Features.Add(new DimensionFeature(DimensionFeature.Arrow2b,
+                new PointF(normalised_end.X, start.Y + height / 2),
+                new PointF(normalised_end.X - arrow_head.Width, start.Y + height / 2 - arrow_head.Height)
+                ));
+
+            string text;
+            if (is_mm)
+            {
+                text = length.ToString ("f"+precision);
+                if (show_units)
+                    text += "mm";
+            }
+            else
+            {
+                text = (length / 25.4).ToString("f" + precision);
+                if (show_units)
+                    text += "in";
+            }
+
+            caption = new gr_text(text, new PointF(start.X + length / 2, start.Y + height / 2 - text_size / 2 - text_size*0.1f), layer, new SizeF(text_size, text_size), text_width, 0);
+
+            // rotate about start point
+            RotateBy((float)angle);
+        }
+
+        public void RotateBy (float angle)
+        {
+            caption.at = caption.at.RotateAt(Start, angle);
+            caption.rotation = MathUtil.NormalizeAngle (caption.rotation - angle);
+
+            foreach (DimensionFeature feature in Features)
+                for (int j= 0; j < feature.Polygon.Count; j++)
+                    feature.Polygon[j] = feature.Polygon[j].RotateAt(Start, angle);
 
         }
 
@@ -65,6 +146,16 @@ namespace Kicad_utils.Pcb
             foreach (DimensionFeature feature in Features)
                 result.Items.Add(feature.GetSExpression());
 
+            return result;
+        }
+
+        public static List<SExpression> GetSExpressionList(List<Dimension> list)
+        {
+            List<SExpression> result = new List<SExpression>();
+            foreach (Dimension item in list)
+            {
+                result.Add(item.GetSExpression());
+            }
             return result;
         }
 

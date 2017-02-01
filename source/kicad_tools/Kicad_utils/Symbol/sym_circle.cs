@@ -36,11 +36,11 @@ namespace Kicad_utils.Symbol
         public override string ToString()
         {
             return string.Format("C {0} {1} {2} {3} {4} {5} {6}",
-                Position.X, Position.Y,
-                Radius,
+                (int)Position.X, (int)Position.Y,
+                (int)Radius,
                 Unit,
                 DeMorganAlternate,
-                PenSize,
+                (int)PenSize,
                 sym_drawing_base.FillTypeToString(Fill)
                 );
         }

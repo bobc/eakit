@@ -32,7 +32,10 @@ namespace Kicad_utils.Pcb
         public List<Zone> Zones;
         public List<PcbSegment> Segments;
         public List<Via> Vias;
+        public List<Dimension> Dimensions;
 
+
+        //
         public List<SExpression> UnParsed;
 
         // links?
@@ -67,6 +70,7 @@ namespace Kicad_utils.Pcb
             Zones = new List<Zone>();
             Segments = new List<PcbSegment>();
             Vias = new List<Via>();
+            Dimensions = new List<Dimension>();
         }
 
         public void AddModule(Module module, PointF position)
@@ -279,6 +283,13 @@ namespace Kicad_utils.Pcb
             if (Vias != null)
             {
                 sex_list = Via.GetSExpressionList(Vias);
+                foreach (SExpression sex in sex_list)
+                    RootNode.Items.Add(sex);
+            }
+
+            if (Dimensions != null)
+            {
+                sex_list = Dimension.GetSExpressionList(Dimensions);
                 foreach (SExpression sex in sex_list)
                     RootNode.Items.Add(sex);
             }

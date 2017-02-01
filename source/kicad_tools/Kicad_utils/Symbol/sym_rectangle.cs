@@ -33,11 +33,11 @@ namespace Kicad_utils.Symbol
         {
             // S X1 Y1 X2 Y2 part dmg pen fill
             return string.Format("S {0} {1} {2} {3} {4} {5} {6} {7}",
-                P1.X, P1.Y,
-                P2.X, P2.Y,
+                (int)P1.X, (int)P1.Y,
+                (int)P2.X, (int)P2.Y,
                 Unit,
                 DeMorganAlternate,
-                PenSize,
+                (int)PenSize,
                 sym_drawing_base.FillTypeToString(Fill)
                 );
         }
