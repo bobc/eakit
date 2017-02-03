@@ -65,7 +65,7 @@ namespace eakit
             XmlSerializer serializer = new XmlSerializer(typeof(AppSettings));
             TextWriter Writer = null;
 
-            AppSettingsBase.CreateDirectory(FileName);
+            AppSettingsBase.CreateDirectory(Path.GetDirectoryName(FileName));
             try
             {
                 Writer = new StreamWriter(FileName, false, Encoding.UTF8);

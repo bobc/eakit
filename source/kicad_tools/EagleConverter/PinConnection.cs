@@ -7,6 +7,8 @@ using System.Drawing;
 
 using EagleImport;
 
+using k = Kicad_utils;
+
 namespace EagleConverter
 {
     public class PinConnection
@@ -21,9 +23,10 @@ namespace EagleConverter
         public string Layer;
         public string PartName;
 
+        //
+        public k.Schema.sch_text Label;
+        public k.Schema.SheetLegacy Sheet;
 
-        //public int SheetNumber; // eagle sheet number
-        //public string PadName;
 
         public PinConnection()
         {
@@ -45,6 +48,12 @@ namespace EagleConverter
 
             this.PartName = part;
             this.PinName = pin;
+        }
+
+        public PinConnection(k.Schema.sch_text label, k.Schema.SheetLegacy sheet)
+        {
+            this.Label  = label;
+            this.Sheet = sheet;
         }
 
     }

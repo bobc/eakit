@@ -22,9 +22,9 @@ namespace RMC
         }
 
 
-        public static void CreateDirectory(string Filename)
+        public static void CreateDirectory(string path)
         {
-            string path = Path.GetDirectoryName(Filename);
+            //string path = Path.GetDirectoryName(Filename);
 
             if ((path != "") && ! Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -37,7 +37,7 @@ namespace RMC
             XmlSerializer serializer = new XmlSerializer(typeof(AppSettingsBase));
             TextWriter Writer = null;
 
-            CreateDirectory(FileName);
+            CreateDirectory(Path.GetDirectoryName(FileName));
             try
             {
                 Writer = new StreamWriter(FileName, false, Encoding.UTF8);

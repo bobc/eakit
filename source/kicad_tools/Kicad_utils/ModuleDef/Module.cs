@@ -69,6 +69,9 @@ namespace Kicad_utils.ModuleDef
             Borders = new List<fp_shape>();
             Pads = new List<pad>();
             CadModels = new List<model>();
+
+            Reference = new fp_text("reference", "Ref", new PointF(0, 0), "F.SilkS", new SizeF(1.5f, 1.5f), 0.15f, false);
+            Value = new fp_text("value", "Val", new PointF(0, 0), "F.Fab", new SizeF(1.5f, 1.5f), 0.15f, false);
         }
 
         public Module Clone(bool is_pcb = false)
