@@ -16,7 +16,7 @@ namespace EagleConverter
 {
     public partial class EagleUtils
     {
-        const bool debug = false;
+        const bool pcb_debug = false;
 
         EagleFile board;
 
@@ -358,28 +358,32 @@ namespace EagleConverter
 
                 foreach (Signal signal in board.Drawing.Board.Signals.Signal)
                 {
-                    //todo:
+                    //todo: ?
                     k.Pcb.Net k_net = k_pcb.Nets.Find(x => x.Name == signal.Name);
 
                     foreach (Wire wire in signal.Wire)
                     {
-                        float width = StrToVal_mm(wire.Width);
-                        string layer = ConvertLayer(wire.Layer).Name;
+                        // todo: segment must be on a copper layer?
+                        // ignore unrouted
+                        if (wire.Layer != "19")
+                        {
+                            float width = StrToVal_mm(wire.Width);
+                            string layer = ConvertLayer(wire.Layer).Name;
+                            //todo: arcs?
 
-                        //todo: arcs?
+                            k.Pcb.PcbSegment seg = new Kicad_utils.Pcb.PcbSegment();
 
-                        k.Pcb.PcbSegment seg = new Kicad_utils.Pcb.PcbSegment();
+                            seg.layer = layer;
+                            seg.net = k_net.Number;
+                            seg.start = StrToPoint_Board(wire.X1, wire.Y1);
+                            seg.end = StrToPoint_Board(wire.X2, wire.Y2);
+                            seg.width = width;
 
-                        seg.layer = layer;
-                        seg.net = k_net.Number;
-                        seg.start = StrToPoint_Board(wire.X1, wire.Y1);
-                        seg.end = StrToPoint_Board(wire.X2, wire.Y2);
-                        seg.width = width;
+                            k_pcb.Segments.Add(seg);
 
-                        k_pcb.Segments.Add(seg);
-
-                        Contacts.Add(new PinConnection(signal.Name, seg.start, layer, null, null));
-                        Contacts.Add(new PinConnection(signal.Name, seg.end, layer, null, null));
+                            Contacts.Add(new PinConnection(signal.Name, seg.start, layer, null, null));
+                            Contacts.Add(new PinConnection(signal.Name, seg.end, layer, null, null));
+                        }
                     }
 
                     // contactref
@@ -569,7 +573,7 @@ namespace EagleConverter
                                 AdjustPos(field);
 
                                 //debug
-                                if (debug)
+                                if (pcb_debug)
                                 {
                                     NewStroke stroke = new NewStroke();
                                     PointF ptext = field.position.At;
