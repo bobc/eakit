@@ -21,6 +21,8 @@ namespace EagleConverter
         const float mm_to_mil = 1000.0f / 25.4f;
         const float inch_to_mm = 25.4f;
 
+        const bool sch_debug = false;
+
         public delegate void TraceHandler(string s);
 
         public event TraceHandler OnTrace;
@@ -47,6 +49,9 @@ namespace EagleConverter
 
         List<ComponentBase> AllComponents = new List<ComponentBase>(); // all component instances in all schematic sheets
         k.Project.FootprintTable footprintTable = new k.Project.FootprintTable();
+
+        List<PinConnection> AllLabels = new List<PinConnection>(); // all label instances in all schematic sheets
+
         RenameMap PartMap = new RenameMap();
         RenameMap FootprintNameMap = new RenameMap();
 
@@ -62,6 +67,9 @@ namespace EagleConverter
 
         private void Trace(string s)
         {
+            if (!sch_debug && (s.StartsWith("debug")))
+                return;
+
             if (OnTrace != null)
                 OnTrace(s);
 
@@ -584,7 +592,7 @@ namespace EagleConverter
                     case "bDocu": result.Name = "B.Fab"; break;
 
                     default:
-                        Trace(string.Format("warning: layer not found: {0}", number, layer.Name));
+                        Trace(string.Format("warning: layer not found: {0} {1}", number, layer.Name));
                         result.Name = "Cmts.User";
                         break;
                 }
@@ -1033,6 +1041,8 @@ namespace EagleConverter
                     else
                         prefix = devset.Prefix;
 
+                    Trace(string.Format("debug: {0}", devset.Name));
+
                     k.Symbol.Symbol k_sym = new k.Symbol.Symbol(devset.Name, true, prefix, 20, true, true, 1, false, false);
 
                     if (devset.Description!=null)
@@ -1053,7 +1063,8 @@ namespace EagleConverter
                     //
                     if ((devset.Devices.Device.Count == 1) && (devset.Devices.Device[0].Package == null))
                     {
-                        //symbol only
+                        // symbol only
+                        Trace(string.Format("debug: symbol only {0}", devset.Name));
                         kicad_lib.Symbols.Add(k_sym);
                     }
                     else
@@ -1081,6 +1092,9 @@ namespace EagleConverter
                                 pos,
                                 50, true, k_sym_device.fValue.Text.Angle == 0 ? "H" : "V",
                                 "L", "B", false, false);
+
+                            Trace(string.Format("debug: device {0} {1}", name, k_sym_device.fPcbFootprint.Text.Value ));
+
 
                             // pin mapping
                             if (device.Connects != null)
@@ -1792,17 +1806,24 @@ namespace EagleConverter
                     foreach (Label label in segment.Label)
                     {
                         ExtRotation rot = ExtRotation.Parse(label.Rot);
-                        
+
+                        int angle = (int)rot.Rotation;
+                        if (rot.Mirror)
+                            if ((angle % 180) == 0)
+                                angle = 180 - angle;
+                        //angle %= 360;
                         sch_text k_text = sch_text.CreateLocalLabel(net.Name,
                             StrToPointInchFlip(label.X, label.Y),
                             StrToInch(label.Size),
-                            (int)rot.Rotation, false, false);
+                            angle);
 
                         // find nearest point
                         //k_text.Pos = FindSnapPoint(snap_points, k_text.Pos);
                         k_text.Pos = FindNearestPoint(snap_points, snap_lines, Vector2Ext.ToVector2(StrToPointInchFlip(label.X, label.Y)));
 
                         k_sheet.Items.Add(k_text);
+
+                        AllLabels.Add (new PinConnection (k_text, k_sheet));
                     }
                 }
             }
@@ -1957,6 +1978,7 @@ namespace EagleConverter
             PartMap = new RenameMap();
             FootprintNameMap = new RenameMap();
             designRules = new DesignRules();
+            AllLabels = new List<PinConnection>();
 
             //
             ProjectName = Path.GetFileNameWithoutExtension(SourceFilename);
@@ -2013,6 +2035,49 @@ namespace EagleConverter
                     }
                 }
 
+                // Global schematic fixups
+
+                List<string> labels = new List<string>();
+
+                foreach (PinConnection conn in AllLabels)
+                {
+                    if (labels.IndexOf(conn.Label.Value) == -1)
+                        labels.Add(conn.Label.Value);
+                }
+
+                foreach (string name in labels)
+                {
+                    List<PinConnection> instances = AllLabels.FindAll(x => x.Label.Value == name);
+
+                    bool is_global = false;
+                    foreach (PinConnection item in instances)
+                    {
+                        if (item.Sheet != instances[0].Sheet)
+                        {
+                            is_global = true;
+                            break;
+                        }
+                    }
+
+                    if (is_global)
+                    {
+                        Trace(String.Format("note: converting {0} to global label", name));
+
+                        foreach (PinConnection item in instances)
+                        {
+                            item.Label.Type = "GLabel";
+                            item.Label.Shape = "3State";
+                            item.Label.TextSize = (int)(item.Label.TextSize * 0.75f);
+
+                            if ((item.Label.Orientation % 2) == 0)
+                                item.Label.Orientation = 2 - item.Label.Orientation;
+                        }
+                    }
+                }
+
+
+
+                //
                 string filename = Path.Combine(OutputFolder, ProjectName + ".sch");
                 Trace(string.Format("Writing schematic {0}", filename));
                 k_schematic.SaveToFile(filename);

@@ -21,6 +21,13 @@ namespace Kicad_utils.Schema
         // Type="Notes":
         // "~" normal
         // "Italic"
+
+        // Type = GLabel
+        // UnSpc
+        // 3State
+        // UnSpc
+        // Output
+        // Input
         public string Shape;
 
         // Type="Notes":
@@ -35,7 +42,7 @@ namespace Kicad_utils.Schema
             name = "Text";
         }
 
-        public static sch_text CreateText (string type, string value, PointF pos, float textsize, int orientation, bool italic, bool bold)
+        public static sch_text CreateText (string type, string value, PointF pos, float textsize, int orientation, string shape)
         {
             sch_text result = new sch_text();
 
@@ -43,36 +50,40 @@ namespace Kicad_utils.Schema
             result.Pos = new Point((int)pos.X, (int)pos.Y);
             result.Orientation = orientation / 90;
             result.TextSize = (int)textsize;
-            if (italic)
-                result.Shape = "Italic";
-            else
-                result.Shape = "~";
-            if (bold)
-                result.Param = 12;
-            else
-                result.Param = 0;
+            result.Shape = shape;
             result.Value = value;
             return result;
         }
 
         public static sch_text CreateNote(string value, PointF pos, float textsize, int orientation, bool italic, bool bold)
         {
-            return CreateText("Notes", value, pos, textsize, orientation, italic, bold);
+            sch_text result= CreateText("Notes", value, pos, textsize, orientation, "~");
+
+            if (italic)
+                result.Shape = "Italic";
+            else
+                result.Shape = "~";
+
+            if (bold)
+                result.Param = 12;
+            else
+                result.Param = 0;
+            return result;
         }
 
-        public static sch_text CreateLocalLabel(string value, PointF pos, float textsize, int orientation, bool italic, bool bold)
+        public static sch_text CreateLocalLabel(string value, PointF pos, float textsize, int orientation)
         {
-            return CreateText("Label", value, pos, textsize, orientation, italic, bold);
+            return CreateText("Label", value, pos, textsize, orientation, "~");
         }
 
-        public static sch_text CreateHierarchicalLabel(string value, PointF pos, float textsize, int orientation, bool italic, bool bold)
+        public static sch_text CreateHierarchicalLabel(string value, PointF pos, float textsize, int orientation, string shape)
         {
-            return CreateText("HLabel", value, pos, textsize, orientation, italic, bold);
+            return CreateText("HLabel", value, pos, textsize, orientation, shape);
         }
 
-        public static sch_text CreateGlobalLabel(string value, PointF pos, float textsize, int orientation, bool italic, bool bold)
+        public static sch_text CreateGlobalLabel(string value, PointF pos, float textsize, int orientation, string shape)
         {
-            return CreateText("GLabel", value, pos, textsize, orientation, italic, bold);
+            return CreateText("GLabel", value, pos, textsize, orientation, shape);
         }
 
         public override void Write(List<string> data)
