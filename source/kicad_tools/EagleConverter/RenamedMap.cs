@@ -7,13 +7,13 @@ namespace EagleConverter
 {
     public class RenameMap
     {
-        public List<PrefixItem> PrefixItems;
+        //public List<PrefixItem> PrefixItems;
         public List<RenamedItem> Renames;
 
         public RenameMap()
         {
             Renames = new List<RenamedItem>();
-            PrefixItems = new List<PrefixItem>();
+          //  PrefixItems = new List<PrefixItem>();
         }
 
         public void Add(string orig, string cleanName)

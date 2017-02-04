@@ -149,11 +149,11 @@ namespace eakit
                 AppSettingsBase.CreateDirectory(AppSettings.DestFolder);
             }
 
-            EagleUtils utils = new EagleUtils();
-            if (utils.CheckValid(SourceFilename))
+            ProjectConverter converter = new ProjectConverter();
+            //if (converter.CheckValid(textBoxSource.Text))
             {
-                utils.OnTrace += Trace;
-                utils.ImportFromEagle(SourceFilename, DestFolder);
+                converter.OnTrace += Trace;
+                converter.ConvertProject(SourceFilename, DestFolder);
             }
 
             return true;

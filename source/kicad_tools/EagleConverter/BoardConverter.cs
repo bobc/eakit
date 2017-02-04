@@ -14,7 +14,7 @@ using EagleConverter.Font;
 
 namespace EagleConverter
 {
-    public partial class EagleUtils
+    public class BoardConverter
     {
         const bool pcb_debug = false;
 
@@ -23,6 +23,77 @@ namespace EagleConverter
         int hole_index = 1;
         int vpad_index = 1;
 
+        ProjectConverter Parent;
+        LibraryConverter libraryConverter;
+
+        SizeF PageSize;
+        string PageStr;
+
+        PointF DrawingOffset = new PointF(10.16f, 12.7f);
+
+        RenameMap PartMap = new RenameMap();           // All parts from <parts> element, with converted name
+
+        //
+        public BoardConverter(ProjectConverter parent)
+        {
+            Parent = parent;
+        }
+
+        //
+        void Trace(string s)
+        {
+            Parent.Trace(s);
+        }
+
+        private PointF StrToPoint_Board(string x, string y)
+        {
+            float grid = 0.100f * 25.4f;
+            // PointF result = new PointF(StrToVal_mm(x), -StrToVal_mm(y));
+
+            float height = Common.RoundToGrid(PageSize.Height, grid);
+
+            float y_offset = (PageSize.Height - DrawingOffset.Y);
+            y_offset = Common.RoundToGrid(y_offset, grid);
+
+            PointF result = new PointF(Common.StrToVal_mm(x) + DrawingOffset.X,
+                Common.StrToVal_mm(y) + DrawingOffset.Y
+                );
+
+            //result.Y = PageSize.Height * mm_to_mil - result.Y;
+            result.Y = height - result.Y;
+
+            return result;
+        }
+
+        public k.LayerDescriptor ConvertLayer(string number)
+        {
+            return Parent.ConvertLayer(board.Drawing.Layers.Layer, number);
+        }
+
+        private void ConvertComponentLibraries(string OutputFolder, bool ExtractLibraries)
+        {
+            k.Project.FootprintTable footprintTable = new k.Project.FootprintTable();
+
+            footprintTable = new k.Project.FootprintTable();
+
+            foreach (Library lib in board.Drawing.Board.Libraries.Library)
+            {
+                if (lib.Name == "frames")
+                    continue;
+
+                libraryConverter.ConvertLibrary(lib, board.Drawing.Layers.Layer, OutputFolder, ExtractLibraries);
+
+                //todo: check if any footprints were written
+                footprintTable.Entries.Add(new Kicad_utils.Project.LibEntry(lib.Name, "KiCad", @"$(KIPRJMOD)\\" + lib.Name + ".pretty", "", ""));
+
+            } // foreach library
+
+            footprintTable.SaveToFile(Path.Combine(OutputFolder, "fp-lib-table"));
+        }
+
+
+
+        //
         private k.ModuleDef.Module OnePin(float pad_diam, float drill_diam, string name, string hole_type)
         {
             SizeF text_size = new SizeF(0.5f, 0.5f);
@@ -61,12 +132,12 @@ namespace EagleConverter
 
         public float GetTextThickness_mm (Text text)
         {
-            return StrToVal_mm(text.Size) * int.Parse(text.Ratio) / 100f;
+            return Common.StrToVal_mm(text.Size) * int.Parse(text.Ratio) / 100f;
         }
 
         public float GetTextThickness_mm(string textSize, string ratio)
         {
-            return StrToVal_mm(textSize) * int.Parse(ratio) / 100f;
+            return Common.StrToVal_mm(textSize) * int.Parse(ratio) / 100f;
         }
 
         private void SetPcbTextAttributes(k.ModuleDef.fp_text field,
@@ -148,11 +219,12 @@ namespace EagleConverter
             DrawRect(k_pcb, new PointF(25.4f, 25.4f), extent, 0);
         }
 
-        public bool ConvertBoardFile (string SourceFilename)
+        public bool ConvertBoardFile (string SourceFilename, string OutputFolder, string ProjectName)
         {
             bool result = false;
             int net_index = 1;
             DesignRules designRules = new DesignRules();
+            PartMap = new RenameMap();
 
             Trace(string.Format("Reading board file {0}", Path.ChangeExtension(SourceFilename,".brd")));
             board = EagleFile.LoadFromXmlFile(Path.ChangeExtension(SourceFilename,".brd"));
@@ -160,17 +232,12 @@ namespace EagleConverter
             //
             if (board != null)
             {
-                // offset from bottom left
-                DrawingOffset = new PointF(2 * inch_to_mm, 2 * inch_to_mm);
+                libraryConverter = new LibraryConverter(Parent);
+                ConvertComponentLibraries(OutputFolder, false);
 
                 k.Pcb.kicad_pcb k_pcb = new k.Pcb.kicad_pcb();
-
                 k_pcb.Modules = new List<k.ModuleDef.Module>();
                 k_pcb.Drawings = new List<k.Pcb.graphic_base>();
-
-                k_pcb.Setup.grid_origin = StrToPoint_Board("0", "0");
-
-                //testFont(k_pcb);    // ** debug
 
                 // paper and size: get the page size
                 PageStr = "A4";
@@ -180,11 +247,30 @@ namespace EagleConverter
                     //
                     if (element.Library == "frames")
                     {
+                        //todo: 
                         //ConvertFrame(element.Package);
                         break;
                     }
                 }
                 k_pcb.Page = PageStr;
+
+
+                // offset from bottom left
+                DrawingOffset = new PointF(2 * Common.inch_to_mm, 2 * Common.inch_to_mm);
+                k_pcb.Setup.grid_origin = StrToPoint_Board("0", "0");
+
+
+                //testFont(k_pcb);    // ** debug
+
+
+                // get list of part names
+                foreach (Element element in board.Drawing.Board.Elements.Element)
+                {
+                    PartMap.Add(element.Name);
+                }
+                PartMap.Annotate();
+
+
 
                 // layers?
 
@@ -201,14 +287,14 @@ namespace EagleConverter
                 foreach (Text text in board.Drawing.Board.Plain.Text)
                 {
                     bool mirror;
-                    int angle = xGetAngleFlip(text.Rot, out mirror);
+                    int angle = Common.xGetAngleFlip(text.Rot, out mirror);
                     string layer = ConvertLayer(text.Layer).Name;
 
                     k.Pcb.gr_text k_text = new k.Pcb.gr_text (
                         text.mText,
                         StrToPoint_Board(text.X, text.Y),
                         layer,
-                        new SizeF (StrToVal_mm(text.Size), StrToVal_mm(text.Size)),
+                        new SizeF (Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
                         GetTextThickness_mm (text),
                         angle
                         );
@@ -245,7 +331,7 @@ namespace EagleConverter
                 #region ==== Plain - lines ====
                 foreach (Wire wire in board.Drawing.Board.Plain.Wire)
                 {
-                    float width = StrToVal_mm(wire.Width);
+                    float width = Common.StrToVal_mm(wire.Width);
                     string layer = ConvertLayer(wire.Layer).Name;
 
                     //todo: arcs
@@ -303,7 +389,7 @@ namespace EagleConverter
                 foreach (Hole hole in board.Drawing.Board.Plain.Hole)
                 {
                     PointF p1 = StrToPoint_Board(hole.X, hole.Y);
-                    float drill = StrToVal_mm(hole.Drill);
+                    float drill = Common.StrToVal_mm(hole.Drill);
 
                     k_pcb.AddModule(NonplatedHole(drill, drill), p1);
                 }
@@ -317,11 +403,11 @@ namespace EagleConverter
                     PointF p2 = StrToPoint_Board(dim.X2, dim.Y2);
                     PointF p3 = StrToPoint_Board(dim.X3, dim.Y3);
                     float line_width = 0.15f; // default width? 
-                    float text_size = StrToVal_mm(dim.TextSize);
+                    float text_size = Common.StrToVal_mm(dim.TextSize);
                     float text_width = GetTextThickness_mm(dim.TextSize, dim.TextRatio);
 
                     if (!string.IsNullOrEmpty(dim.Width))
-                        line_width = StrToVal_mm(dim.Width);
+                        line_width = Common.StrToVal_mm(dim.Width);
 
                     switch (dim.Dtype)
                     {
@@ -367,7 +453,7 @@ namespace EagleConverter
                         // ignore unrouted
                         if (wire.Layer != "19")
                         {
-                            float width = StrToVal_mm(wire.Width);
+                            float width = Common.StrToVal_mm(wire.Width);
                             string layer = ConvertLayer(wire.Layer).Name;
                             //todo: arcs?
 
@@ -395,9 +481,9 @@ namespace EagleConverter
                     //<via x="6.6675" y="49.2125" extent="1-16" drill="0.3" shape="octagon"/>
                     foreach (Via via in signal.Via)
                     {
-                        float drill = StrToVal_mm(via.Drill);
+                        float drill = Common.StrToVal_mm(via.Drill);
                         PointF pos = StrToPoint_Board(via.X, via.Y);
-                        float size = StrToVal_mm(via.Diameter);
+                        float size = Common.StrToVal_mm(via.Diameter);
 
                         if (size == 0)
                             size = designRules.CalcViaSize(drill);
@@ -432,7 +518,7 @@ namespace EagleConverter
                     foreach (EagleImport.Polygon poly in signal.Polygon)
                     {
                         //<polygon width="0.2032" layer="1" spacing="0.254" isolate="0.254" rank="2">
-                        float width = StrToVal_mm(poly.Width);
+                        float width = Common.StrToVal_mm(poly.Width);
                         int rank = int.Parse(poly.Rank);
 
                         k.LayerDescriptor layer = ConvertLayer(poly.Layer);
@@ -465,7 +551,7 @@ namespace EagleConverter
 
                             if (!String.IsNullOrEmpty(poly.Spacing))
                             {
-                                float spacing = StrToVal_mm(poly.Spacing);
+                                float spacing = Common.StrToVal_mm(poly.Spacing);
                                 zone.outline_style = k.Pcb.ZoneOutlineStyle.edge;
                                 zone.hatch_pitch = spacing;
                             }
@@ -474,7 +560,7 @@ namespace EagleConverter
 
                             if (!String.IsNullOrEmpty(poly.Isolate))
                             {
-                                float isolate = StrToVal_mm(poly.Isolate);
+                                float isolate = Common.StrToVal_mm(poly.Isolate);
                                 zone.connect_pads_clearance = isolate;
                             }
 
@@ -505,9 +591,9 @@ namespace EagleConverter
                     k.ModuleDef.Module k_mod;
 
                     // find package library : package
-                    string footprint_sid = element.Library + ":" + FootprintNameMap.GetNewName(element.Package);
+                    string footprint_sid = element.Library + ":" + libraryConverter.FootprintNameMap.GetNewName(element.Package);
 
-                    k.ModuleDef.Module k_template = AllFootprints.Find(x => x.Name == footprint_sid);
+                    k.ModuleDef.Module k_template = libraryConverter.AllFootprints.Find(x => x.Name == footprint_sid);
 
                     if (k_template == null)
                     {
@@ -557,7 +643,7 @@ namespace EagleConverter
 
                             if (field != null)
                             {
-                                field.effects.font.Size = new SizeF( StrToVal_mm(attrib.Size), StrToVal_mm(attrib.Size));
+                                field.effects.font.Size = new SizeF( Common.StrToVal_mm(attrib.Size), Common.StrToVal_mm(attrib.Size));
 
                                 field.layer = ConvertLayer(attrib.Layer).Name;
 

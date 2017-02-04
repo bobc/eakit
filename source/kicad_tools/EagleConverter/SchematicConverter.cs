@@ -14,18 +14,13 @@ using EagleImport;
 using k = Kicad_utils;
 using Kicad_utils.Schema;
 
+
 namespace EagleConverter
 {
-    public partial class EagleUtils
+    public class SchematicConverter
     {
-        const float mm_to_mil = 1000.0f / 25.4f;
-        const float inch_to_mm = 25.4f;
 
         const bool sch_debug = false;
-
-        public delegate void TraceHandler(string s);
-
-        public event TraceHandler OnTrace;
 
         /// <summary>
         /// Place no-connect flags on pins that are not in any net.
@@ -34,26 +29,35 @@ namespace EagleConverter
         public bool option_add_no_connects = true;
 
         //
-        string ProjectName;
+        ProjectConverter Parent;
+
+        //string ProjectName;
         string OutputFolder;
+
         EagleSchematic schematic;
+
         DesignRules designRules;
 
-        StreamWriter reportFile = null;
+        LibraryConverter libraryConverter;
 
-        List<string> LibNames = new List<string>();
-        List<Device> AllDevices = new List<Device>();
 
-        List<k.Symbol.Symbol> AllSymbols = new List<k.Symbol.Symbol>(); // all symbols from all libraries in sch file
-        List<k.ModuleDef.Module> AllFootprints = new List<k.ModuleDef.Module>(); // all package/module/foorptints from all libraries in sch file
+        //
+        RenameMap PartMap = new RenameMap();           // All parts from <parts> element, with converted name
 
-        List<ComponentBase> AllComponents = new List<ComponentBase>(); // all component instances in all schematic sheets
+        // RenameMap FootprintNameMap = new RenameMap();  // Footprint names from AllFootprints with converted name
+        // List<k.Symbol.Symbol> AllSymbols = new List<k.Symbol.Symbol>(); // all symbols from all libraries in sch file
+        // List<k.ModuleDef.Module> AllFootprints = new List<k.ModuleDef.Module>(); // all package/module/footprints from all libraries in sch file
+        // List<Device> AllDevices = new List<Device>();
+
+        //
+
         k.Project.FootprintTable footprintTable = new k.Project.FootprintTable();
-
+        List<ComponentBase> AllComponents = new List<ComponentBase>(); // all component instances in all schematic sheets
         List<PinConnection> AllLabels = new List<PinConnection>(); // all label instances in all schematic sheets
 
-        RenameMap PartMap = new RenameMap();
-        RenameMap FootprintNameMap = new RenameMap();
+
+
+
 
         // A4, landscape
         //        float PageWidth = 271.78f;   // = 10.7 inches
@@ -65,46 +69,32 @@ namespace EagleConverter
         PointF DrawingOffset = new PointF(10.16f, 12.7f);
         //PointF DrawingOffset = new PointF(0, 0);
 
-        private void Trace(string s)
+
+        public SchematicConverter(ProjectConverter parent)
+        {
+            Parent = parent;
+        }
+
+        void Trace (string s)
         {
             if (!sch_debug && (s.StartsWith("debug")))
                 return;
 
-            if (OnTrace != null)
-                OnTrace(s);
-
-            if (reportFile!= null)
-            {
-                reportFile.WriteLine(s);
-            }
+            Parent.Trace(s);
         }
 
-        // convert strings in mm to inches
-        private float StrToInch(string s)
-        {
-            return (float)(StringUtils.StringToDouble(s) * mm_to_mil);
-        }
 
-        private PointF StrToPointInch(string x, string y)
-        {
-            return new PointF(StrToInch(x), StrToInch(y));
-        }
-
-        private SizeF StrToSizeInch(string dx, string dy)
-        {
-            return new SizeF(StrToInch(dx), StrToInch(dy));
-        }
 
         // For schematic page
         private PointF StrToPointInchFlip(string x, string y)
         {
-            float height = (int)(PageSize.Height * mm_to_mil / 25) * 25;
+            float height = (int)(PageSize.Height * Common.mm_to_mil / 25) * 25;
 
-            float y_offset = (PageSize.Height - DrawingOffset.Y * mm_to_mil);
+            float y_offset = (PageSize.Height - DrawingOffset.Y * Common.mm_to_mil);
             y_offset = (int)(y_offset / 25) * 25;
 
-            PointF result = new PointF(StrToInch(x) + DrawingOffset.X * mm_to_mil,
-                StrToInch(y) + DrawingOffset.Y * mm_to_mil
+            PointF result = new PointF(Common.StrToInch(x) + DrawingOffset.X * Common.mm_to_mil,
+                Common.StrToInch(y) + DrawingOffset.Y * Common.mm_to_mil
                 );
 
             //result.Y = PageSize.Height * mm_to_mil - result.Y;
@@ -113,85 +103,13 @@ namespace EagleConverter
             return result;
         }
 
-        // convert string to mm
-        private float StrToVal_mm(string s)
-        {
-            return (float)(StringUtils.StringToDouble(s));
-        }
 
-        private PointF StrToPoint_mm(string x, string y)
-        {
-            return new PointF(StrToVal_mm(x), StrToVal_mm(y));
-        }
-
-        private SizeF StrToSize_mm(string dx, string dy)
-        {
-            return new SizeF(StrToVal_mm(dx), StrToVal_mm(dy));
-        }
-
-        // For footprint files
-        private PointF StrToPointFlip_mm(string x, string y)
-        {
-            PointF result = new PointF(StrToVal_mm(x), -StrToVal_mm(y));
-            return result;
-        }
-
-        //NB works in mm
-        private float RoundToGrid (float x, float align)
-        {
-            int j = (int)(x / align + align/2f);
-
-            return j * align;
-
-        }
-
-        private PointF StrToPoint_Board(string x, string y)
-        {
-            float grid = 0.100f * 25.4f;
-            // PointF result = new PointF(StrToVal_mm(x), -StrToVal_mm(y));
-
-            float height = RoundToGrid(PageSize.Height, grid);
-
-            float y_offset = (PageSize.Height - DrawingOffset.Y);
-            y_offset = RoundToGrid (y_offset, grid);
-
-            PointF result = new PointF(StrToVal_mm(x) + DrawingOffset.X,
-                StrToVal_mm(y) + DrawingOffset.Y
-                );
-
-            //result.Y = PageSize.Height * mm_to_mil - result.Y;
-            result.Y = height - result.Y;
-
-            return result;
-        }
+        //public k.LayerDescriptor ConvertLayer(string number)
+        //{
+        //    return Parent.ConvertLayer(schematic.Drawing.Layers.Layer, number);
+        //}
 
         //
-        /// Convert an Eagle curve end to a KiCad center for S_ARC
-        private PointF kicad_arc_center(PointF start, PointF end, double angle, out float radius, out float arc_start, out float arc_end)
-        {
-            // Eagle give us start and end.
-            // S_ARC wants start to give the center, and end to give the start.
-            double dx = end.X - start.X;
-            double dy = end.Y - start.Y;
-
-            PointF mid = new PointF((float)(start.X + dx / 2), (float)(start.Y + dy / 2));
-
-            double dlen = Math.Sqrt(dx * dx + dy * dy);
-            double dist = dlen / (2 * Math.Tan(MathUtil.DegToRad(angle) / 2));
-
-            PointF center = new PointF(
-                (float)(mid.X + dist * (dy / dlen)),
-                (float)(mid.Y - dist * (dx / dlen))
-            );
-
-            radius = (float)Math.Sqrt(dist * dist + (dlen / 2) * (dlen / 2));
-            arc_start = (float)Math.Atan2(start.Y - center.Y, start.X - center.X);
-            arc_start = MathUtil.RadToDeg(arc_start);
-            arc_end = (float)Math.Atan2(end.Y - center.Y, end.X - center.X);
-            arc_end = MathUtil.RadToDeg(arc_end);
-
-            return center;
-        }
 
 
         private void ConvertFrame(string s)
@@ -275,12 +193,12 @@ namespace EagleConverter
 
                 case "LETTER_P":
                     PageStr = "USLetter";
-                    PageSize = new SizeF((float)8.5 * inch_to_mm, (float)(11 * inch_to_mm));
+                    PageSize = new SizeF((float)8.5 * Common.inch_to_mm, (float)(11 * Common.inch_to_mm));
                     break;
 
                 case "LETTER_L":
                     PageStr = "USLetter";
-                    PageSize = new SizeF(11 * inch_to_mm, (float)(8.5 * inch_to_mm));
+                    PageSize = new SizeF(11 * Common.inch_to_mm, (float)(8.5 * Common.inch_to_mm));
                     break;
 
                 case "DINA-DOC": break; // n/a
@@ -288,116 +206,30 @@ namespace EagleConverter
 
                 case "FRAME_A_L":
                     PageStr = "A";
-                    PageSize = new SizeF(11 * inch_to_mm, (float)(8.5 * inch_to_mm));
+                    PageSize = new SizeF(11 * Common.inch_to_mm, (float)(8.5 * Common.inch_to_mm));
                     break;
                 case "FRAME_B_L":
                     PageStr = "B";
-                    PageSize = new SizeF(17 * inch_to_mm, (float)(11 * inch_to_mm));
+                    PageSize = new SizeF(17 * Common.inch_to_mm, (float)(11 * Common.inch_to_mm));
                     break;
                 case "FRAME_C_L":
                     PageStr = "C";
-                    PageSize = new SizeF(22 * inch_to_mm, (float)(17 * inch_to_mm));
+                    PageSize = new SizeF(22 * Common.inch_to_mm, (float)(17 * Common.inch_to_mm));
                     break;
                 case "FRAME_D_L":
                     PageStr = "D";
-                    PageSize = new SizeF(34 * inch_to_mm, (float)(22 * inch_to_mm));
+                    PageSize = new SizeF(34 * Common.inch_to_mm, (float)(22 * Common.inch_to_mm));
                     break;
                 case "FRAME_E_L":
                     PageStr = "E";
-                    PageSize = new SizeF(44 * inch_to_mm, (float)(34 * inch_to_mm));
+                    PageSize = new SizeF(44 * Common.inch_to_mm, (float)(34 * Common.inch_to_mm));
                     break;
             }
         }
 
 
 
-        // for pin, label names
-        private string ConvertName(string s)
-        {
-            if (!string.IsNullOrEmpty(s))
-            {
-                //todo: other chars?
-                // special chars not at start?
-                s = s.Replace("\"", "_");   //todo: mapping
-                s = s.Replace("!", "~");   //todo: what if ~ already there?
-                return s;
-            }
-            return s;
-        }
 
-        // Replace illegal filename chracters with underscore (_)
-        private string CleanFootprintName(string s)
-        {
-            if (!string.IsNullOrEmpty(s))
-            {
-                //todo: other characters?
-                // Replace \ and / with underscore (_)
-                s = s.Replace("/", "_");
-                s = s.Replace(@"\", "_");
-            }
-            return s;
-        }
-
-        /// <summary>
-        /// Remove HTML tags from string
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        private string CleanTags(string orig)
-        {
-            if (!string.IsNullOrEmpty(orig))
-            {
-                string s = orig;
-
-                s = s.Replace("<b>", "");
-                s = s.Replace("</b>", "");
-                s = s.Replace("<B>", "");
-                s = s.Replace("</B>", "");
-
-                s = s.Replace("<p>\n", "; ");
-                s = s.Replace("<P>\n", "; ");
-
-                s = s.Replace("<p>", "; ");
-                s = s.Replace("<P>", "; ");
-
-                s = s.Replace("<br>\n", "; ");
-                s = s.Replace("<BR>\n", "; ");
-
-                s = s.Replace("\n", "; ");
-
-                s = s.Trim();
-                while ((s.Length != 0) && s.StartsWith(";"))
-                {
-                    s = s.Substring(1);
-                    s = s.Trim();
-                }
-
-                return s;
-            }
-            else
-                return orig;
-        }
-
-
-        // [MSR]0 to 359.9
-        private int GetAngle(string rot)
-        {
-            int result = (int)ExtRotation.Parse (rot).Rotation;
-            return result;
-        }
-
-        private int xGetAngleFlip(string rot, out bool mirror)
-        {
-            ExtRotation extRot = ExtRotation.Parse(rot);
-
-            int result = (int)extRot.Rotation;
-
-            if (extRot.Mirror)
-                result = (result + 180) % 360;
-
-            mirror = extRot.Mirror;
-            return result;
-        }
 
 
         private float DistanceBetweenPoints(Point a, Point b)
@@ -454,7 +286,7 @@ namespace EagleConverter
 
         private k.Symbol.Symbol FindSymbol(string Name)
         {
-            k.Symbol.Symbol result = AllSymbols.Find(x => x.Name == Name);
+            k.Symbol.Symbol result = libraryConverter.AllSymbols.Find(x => x.Name == Name);
             return result;
         }
 
@@ -492,116 +324,7 @@ namespace EagleConverter
             return tstamp;
         }
 
-        private k.LayerDescriptor ConvertLayer(string number)
-        {
-            k.LayerDescriptor result = new Kicad_utils.LayerDescriptor();
-
-            //todo: for copper layers use number?
-            //todo: use layer names from Eagle? (cu layers only)
-
-            Layer layer = schematic.Drawing.Layers.Layer.Find(x => x.Number == number);
-
-            if (layer == null)
-            {
-                switch (number)
-                {
-                    case "160": result.Name = "Eco1.User"; break;
-                    case "161": result.Name = "Eco2.User"; break;
-                }
-
-                Trace(string.Format("warning: layer not found: {0}", number));
-                result.Name = "Cmts.User";
-            }
-            else
-            {
-                switch (layer.Name)
-                {
-                    // 1
-                    case "Top":
-                    case "tCopper":
-                        result.Name = "F.Cu";              // or Top
-                        break;
-                    // 16
-                    case "Bottom":
-                    case "bCopper":
-                        result.Name = "B.Cu";           // or Bottom
-                        break;
-
-                    // 20
-                    case "Dimension": result.Name = "Edge.Cuts"; break;  // or edge?
-
-                    // 21
-                    case "tPlace": result.Name = "F.SilkS"; break;
-                    // 22
-                    case "bPlace": result.Name = "B.SilkS"; break;
-
-                    // 25
-                    case "tNames": result.Name = "F.SilkS"; break;
-                    // 26
-                    case "bNames": result.Name = "B.SilkS"; break;
-
-                    // 27
-                    case "tValues": result.Name = "F.SilkS"; break;
-                    // 28
-                    case "bValues": result.Name = "B.SilkS"; break;
-
-                    // 29
-                    case "tStop": result.Name = "F.Mask"; break;
-                    // 30
-                    case "bStop": result.Name = "B.Mask"; break;
-
-                    // 31
-                    case "tCream": result.Name = "F.Paste"; break;
-                    // 32
-                    case "bCream": result.Name = "B.Paste"; break;
-
-                    // 33
-                    case "tFinish": result.Name = "F.Mask"; break;
-                    // 34
-                    case "bFinish": result.Name = "B.Mask"; break;
-
-                    // 35
-                    case "tGlue": result.Name = "F.Adhes"; break;
-                    // 36
-                    case "bGlue": result.Name = "B.Adhes"; break;
-
-                    // 39
-                    case "tKeepout": result.Name = "F.CrtYd"; break;
-                    // 40
-                    case "bKeepout": result.Name = "B.CrtYd"; break;
-
-                    // -> clearance?
-                    // 41
-                    case "tRestrict": result.Name = "Dwgs.User"; break;
-                    // 42
-                    case "bRestrict": result.Name = "Dwgs.User"; break;
-                    // 43
-                    case "vRestrict": result.Name = "Dwgs.User"; break;
-
-                    // 46
-                    case "Milling": result.Name = "Dwgs.User"; break; // edge?
-
-                    // 49
-                    case "ReferenceLC": result.Name = "Cmts.User"; break;
-                    // 50
-                    case "ReferenceLS": result.Name = "Cmts.User"; break;
-
-                    // 51
-                    case "tDocu": result.Name = "F.Fab"; break;
-                    // 52
-                    case "bDocu": result.Name = "B.Fab"; break;
-
-                    default:
-                        Trace(string.Format("warning: layer not found: {0} {1}", number, layer.Name));
-                        result.Name = "Cmts.User";
-                        break;
-                }
-            }
-
-            result.Number = k.Layer.GetLayerNumber(result.Name);
-            return result;
-        }
-
+#if xxx
         private void GetSymbol(Library lib, Deviceset devset, k.Symbol.Symbol k_sym)
         {
             bool is_multi_part = false;
@@ -664,17 +387,17 @@ namespace EagleConverter
 
                         if (curve == 0)
                         {
-                            k_sym.Drawings.Add(new k.Symbol.sym_polygon(unit, StrToInch(wire.Width), k.Symbol.FillTypes.None,
-                                new List<PointF>() { StrToPointInch(wire.X1, wire.Y1), StrToPointInch(wire.X2, wire.Y2) }));
+                            k_sym.Drawings.Add(new k.Symbol.sym_polygon(unit, Common.StrToInch(wire.Width), k.Symbol.FillTypes.None,
+                                new List<PointF>() { Common.StrToPointInch(wire.X1, wire.Y1), Common.StrToPointInch(wire.X2, wire.Y2) }));
                         }
                         else
                         {
-                            PointF start = StrToPointInch(wire.X1, wire.Y1);
-                            PointF end = StrToPointInch(wire.X2, wire.Y2);
+                            PointF start = Common.StrToPointInch(wire.X1, wire.Y1);
+                            PointF end = Common.StrToPointInch(wire.X2, wire.Y2);
                             float arc_start, arc_end, radius;
-                            PointF center = kicad_arc_center(start, end, -curve, out radius, out arc_start, out arc_end);
+                            PointF center = Common.kicad_arc_center(start, end, -curve, out radius, out arc_start, out arc_end);
 
-                            k_sym.Drawings.Add(new k.Symbol.sym_arc(unit, StrToInch(wire.Width),
+                            k_sym.Drawings.Add(new k.Symbol.sym_arc(unit, Common.StrToInch(wire.Width),
                                 center, radius, arc_start, arc_end,
                                 start, end));
                         }
@@ -683,20 +406,20 @@ namespace EagleConverter
                     // graphic : rectangles
                     foreach (EagleImport.Rectangle rect in sym.Rectangle)
                     {
-                        k_sym.Drawings.Add(new k.Symbol.sym_rectangle(unit, 1f, k.Symbol.FillTypes.PenColor, StrToPointInch(rect.X1, rect.Y1), StrToPointInch(rect.X2, rect.Y2)));
+                        k_sym.Drawings.Add(new k.Symbol.sym_rectangle(unit, 1f, k.Symbol.FillTypes.PenColor, Common.StrToPointInch(rect.X1, rect.Y1), Common.StrToPointInch(rect.X2, rect.Y2)));
                     }
 
                     // graphic : texts
                     // check for name, value
                     foreach (Text text in sym.Text)
                     {
-                        k.Symbol.sym_text k_text = new k.Symbol.sym_text(unit, text.mText, 0, StrToPointInch(text.X, text.Y), StrToInch(text.Size),
+                        k.Symbol.sym_text k_text = new k.Symbol.sym_text(unit, text.mText, 0, Common.StrToPointInch(text.X, text.Y), Common.StrToInch(text.Size),
                             false, false, false, k.Symbol.SymbolField.HorizAlign_Left, k.Symbol.SymbolField.VertAlign_Bottom);
 
                         //ExtRotation extRot = ExtRotation.Parse(text.Rot);
-                        k_text.Text.xAngle = GetAngle(text.Rot);
+                        k_text.Text.xAngle = Common.GetAngle(text.Rot);
 
-                        k_text.Text.Angle = xGetAngleFlip(text.Rot, out k_text.Text.xMirror);
+                        k_text.Text.Angle = Common.xGetAngleFlip(text.Rot, out k_text.Text.xMirror);
 
                         string t = text.mText.ToUpperInvariant();
                         if (t.Contains(">NAME") || t.Contains(">PART") ||
@@ -726,7 +449,7 @@ namespace EagleConverter
                 // Pins
                 foreach (Pin pin in sym.Pin)
                 {
-                    k.Symbol.sym_pin k_pin = new k.Symbol.sym_pin(unit, ConvertName(pin.Name), "~", StrToPointInch(pin.X, pin.Y),
+                    k.Symbol.sym_pin k_pin = new k.Symbol.sym_pin(unit, Common.ConvertName(pin.Name), "~", Common.StrToPointInch(pin.X, pin.Y),
                         250,
                         "L",
                         50f, 50f, "P", "", true);
@@ -796,7 +519,7 @@ namespace EagleConverter
                             PointF p1 = k_pin.Pos;
                             PointF p2 = new PointF( k_pin.Pos.X + k_pin.Length, k_pin.Pos.Y);
 
-                            p2 = PointFExt.Rotate(p2, k_pin.Pos, GetAngle(pin.Rot) );
+                            p2 = PointFExt.Rotate(p2, k_pin.Pos, Common.GetAngle(pin.Rot) );
 
                             k_sym.Drawings.Add(new k.Symbol.sym_polygon(unit, 6, 
                                 k.Symbol.FillTypes.None,
@@ -819,7 +542,7 @@ namespace EagleConverter
                 gate_index++;
             } // foreach gate
         }
-
+#endif
         private int GetUnitNumber (Part part, string gate_name)
         {
             Library lib = schematic.Drawing.Schematic.Libraries.Library.Find(x => x.Name == part.Library);
@@ -834,6 +557,26 @@ namespace EagleConverter
             return 0;
         }
 
+        private void ConvertComponentLibraries(bool ExtractLibraries)
+        {
+            footprintTable = new k.Project.FootprintTable();
+
+            foreach (Library lib in schematic.Drawing.Schematic.Libraries.Library)
+            {
+                if (lib.Name == "frames")
+                    continue;
+
+                libraryConverter.ConvertLibrary(lib, schematic.Drawing.Layers.Layer, OutputFolder, ExtractLibraries);
+
+                //todo: check if any footprints were written
+                footprintTable.Entries.Add(new Kicad_utils.Project.LibEntry(lib.Name, "KiCad", @"$(KIPRJMOD)\\" + lib.Name + ".pretty", "", ""));
+
+            } // foreach library
+
+            footprintTable.SaveToFile(Path.Combine(OutputFolder, "fp-lib-table")); // todo boardConv
+        }
+
+#if xxx
         private void ConvertComponentLibraries()
         {
             string lib_filename;
@@ -855,14 +598,14 @@ namespace EagleConverter
                 {
                     k.ModuleDef.Module k_module = new Kicad_utils.ModuleDef.Module();
 
-                    k_module.Name = CleanFootprintName(package.Name);
+                    k_module.Name = Common.CleanFootprintName(package.Name);
 
                     FootprintNameMap.Add(package.Name, k_module.Name);
                     if (package.Name != k_module.Name)
                         Trace(String.Format("note: {0} is renamed to {1}", package.Name, k_module.Name));
 
                     if (package.Description!=null)
-                        k_module.description = CleanTags(package.Description.Text);
+                        k_module.description = Common.CleanTags(package.Description.Text);
                     k_module.position = new k.ModuleDef.Position(0, 0, 0);
 
                     k_module.layer = "F.Cu"; // todo: back ???
@@ -874,24 +617,24 @@ namespace EagleConverter
                         if (curve == 0)
                         {
                             k.ModuleDef.fp_line k_line = new Kicad_utils.ModuleDef.fp_line(
-                                StrToPointFlip_mm(wire.X1, wire.Y1),
-                                StrToPointFlip_mm(wire.X2, wire.Y2),
+                                Common.StrToPointFlip_mm(wire.X1, wire.Y1),
+                                Common.StrToPointFlip_mm(wire.X2, wire.Y2),
                                 ConvertLayer(wire.Layer).Name,
-                                StrToVal_mm(wire.Width));
+                                Common.StrToVal_mm(wire.Width));
                             k_module.Borders.Add(k_line);
                         }
                         else
                         {
-                            PointF start = StrToPointFlip_mm(wire.X1, wire.Y1);
-                            PointF end = StrToPointFlip_mm(wire.X2, wire.Y2);
+                            PointF start = Common.StrToPointFlip_mm(wire.X1, wire.Y1);
+                            PointF end = Common.StrToPointFlip_mm(wire.X2, wire.Y2);
                             float arc_start, arc_end, radius;
-                            PointF center = kicad_arc_center(start, end, curve, out radius, out arc_start, out arc_end);
+                            PointF center = Common.kicad_arc_center(start, end, curve, out radius, out arc_start, out arc_end);
 
                             k.ModuleDef.fp_arc k_arc = new k.ModuleDef.fp_arc (
                                 center, start,
                                 -curve,
                                 ConvertLayer(wire.Layer).Name,
-                                StrToVal_mm(wire.Width));
+                                Common.StrToVal_mm(wire.Width));
 
                             k_module.Borders.Add(k_arc);
                         }
@@ -899,9 +642,9 @@ namespace EagleConverter
 
                     foreach (Smd smd in package.Smd)
                     {
-                        k.ModuleDef.pad k_pad = new k.ModuleDef.pad(smd.Name, "smd", "rect", StrToPointFlip_mm(smd.X, smd.Y), StrToSize_mm(smd.Dx, smd.Dy), 0);
-                        if (GetAngle(smd.Rot) % 180 == 90)
-                            k_pad.size = StrToSize_mm(smd.Dy, smd.Dx);
+                        k.ModuleDef.pad k_pad = new k.ModuleDef.pad(smd.Name, "smd", "rect", Common.StrToPointFlip_mm(smd.X, smd.Y), Common.StrToSize_mm(smd.Dx, smd.Dy), 0);
+                        if (Common.GetAngle(smd.Rot) % 180 == 90)
+                            k_pad.size = Common.StrToSize_mm(smd.Dy, smd.Dx);
                         k_module.Pads.Add(k_pad);
 
                         string layer = ConvertLayer(smd.Layer).Name;
@@ -910,14 +653,14 @@ namespace EagleConverter
                     foreach (Pad pad in package.Pad)
                     {
                         
-                        float pad_size = designRules.CalcPadSize (StrToVal_mm(pad.Drill));
+                        float pad_size = designRules.CalcPadSize (Common.StrToVal_mm(pad.Drill));
                         k.ModuleDef.pad k_pad = new k.ModuleDef.pad(pad.Name, "thru_hole", "circle",
-                            StrToPointFlip_mm(pad.X, pad.Y), new SizeF(pad_size, pad_size), StrToVal_mm(pad.Drill));
+                            Common.StrToPointFlip_mm(pad.X, pad.Y), new SizeF(pad_size, pad_size), Common.StrToVal_mm(pad.Drill));
 
                         if (pad.Shape == "long")
                         {
                             k_pad.shape = "oval";
-                            if (GetAngle(pad.Rot) % 180 == 0)
+                            if (Common.GetAngle(pad.Rot) % 180 == 0)
                                 k_pad.size = new SizeF(pad_size * 2, pad_size);
                             else
                                 k_pad.size = new SizeF(pad_size, pad_size * 2);
@@ -928,9 +671,9 @@ namespace EagleConverter
                     foreach (Text text in package.Text)
                     {
                         k.ModuleDef.fp_text k_text = new k.ModuleDef.fp_text("ref", text.mText,
-                            StrToPointFlip_mm(text.X, text.Y),
+                            Common.StrToPointFlip_mm(text.X, text.Y),
                             ConvertLayer(text.Layer).Name,
-                            new SizeF(StrToVal_mm(text.Size), StrToVal_mm(text.Size)),
+                            new SizeF(Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
                             0.12f,
                             true);
 
@@ -966,7 +709,7 @@ namespace EagleConverter
                     foreach (EagleImport.Rectangle rect in package.Rectangle)
                     {
                         k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(
-                            StrToPointFlip_mm(rect.X1, rect.Y1), StrToPointFlip_mm(rect.X2, rect.Y2),
+                            Common.StrToPointFlip_mm(rect.X1, rect.Y1), Common.StrToPointFlip_mm(rect.X2, rect.Y2),
                             ConvertLayer(rect.Layer).Name,
                             0.12f
                             );
@@ -976,10 +719,10 @@ namespace EagleConverter
                     foreach (Circle circle in package.Circle)
                     {
                         k.ModuleDef.fp_circle k_circle = new Kicad_utils.ModuleDef.fp_circle(
-                            StrToPointFlip_mm(circle.X, circle.Y),
-                            StrToVal_mm(circle.Radius),
+                            Common.StrToPointFlip_mm(circle.X, circle.Y),
+                            Common.StrToVal_mm(circle.Radius),
                             ConvertLayer(circle.Layer).Name,
-                            StrToVal_mm(circle.Width)
+                            Common.StrToVal_mm(circle.Width)
                             );
                         k_module.Borders.Add(k_circle);
                     }
@@ -988,9 +731,9 @@ namespace EagleConverter
                     {
                         k.ModuleDef.pad k_hole = new Kicad_utils.ModuleDef.pad("", "np_thru_hole",
                             "circle",
-                            StrToPointFlip_mm(hole.X, hole.Y),
-                            new SizeF(StrToVal_mm(hole.Drill), StrToVal_mm(hole.Drill)),
-                            StrToVal_mm(hole.Drill),
+                            Common.StrToPointFlip_mm(hole.X, hole.Y),
+                            new SizeF(Common.StrToVal_mm(hole.Drill), Common.StrToVal_mm(hole.Drill)),
+                            Common.StrToVal_mm(hole.Drill),
                             ""
                             );
                         k_module.Pads.Add(k_hole);
@@ -1002,7 +745,7 @@ namespace EagleConverter
 
                         foreach (Vertex v in poly.Vertex)
                         {
-                            PointF p = StrToPointFlip_mm(v.X, v.Y);
+                            PointF p = Common.StrToPointFlip_mm(v.X, v.Y);
                             poly_2d.AddVertex(p.X, p.Y);
                         }
 
@@ -1046,7 +789,7 @@ namespace EagleConverter
                     k.Symbol.Symbol k_sym = new k.Symbol.Symbol(devset.Name, true, prefix, 20, true, true, 1, false, false);
 
                     if (devset.Description!=null)
-                        k_sym.Description = CleanTags(devset.Description.Text);
+                        k_sym.Description = Common.CleanTags(devset.Description.Text);
 
                     // prefix placeholder for reference     =  >NAME   or >PART if multi-part?
                     // symbol name is placeholder for value =  >VALUE
@@ -1114,7 +857,7 @@ namespace EagleConverter
                                                 unit++;
                                     }
 
-                                    k.Symbol.sym_pin k_pin = k_sym_device.FindPin(unit, ConvertName(connect.Pin));
+                                    k.Symbol.sym_pin k_pin = k_sym_device.FindPin(unit, Common.ConvertName(connect.Pin));
                                     if (k_pin == null)
                                         Trace(string.Format("error: pin not found {0} {1}", k_sym_device, connect.Pin));
                                     else
@@ -1144,6 +887,7 @@ namespace EagleConverter
 
             footprintTable.SaveToFile(Path.Combine(OutputFolder, "fp-lib-table"));
         }
+#endif
 
         private Point FindNearestPoint(List<Vector2> points, List<LineSegment> snap_lines, Vector2 p)
         {
@@ -1200,85 +944,6 @@ namespace EagleConverter
             {
                 return points[min_point].ToPoint();
             }
-        }
-
-        private void WriteProjectFile()
-        {
-            k.Project.KicadProject k_project = new k.Project.KicadProject();
-
-            k.Project.Section k_section = new k.Project.Section();
-            k_project.Sections.Add(k_section);
-            k_section.AddItem("update", k.Project.KicadProject.FormatDateTime(DateTime.Now));
-            k_section.AddItem("version", 1);
-            k_section.AddItem("last_client", "kicad");
-
-            k_section = new k.Project.Section("general");
-            k_project.Sections.Add(k_section);
-            k_section.AddItem("version", 1);
-            k_section.AddItem("RootSch", "");
-            k_section.AddItem("BoardNm", "");
-
-            k_section = new k.Project.Section("pcbnew");
-            k_project.Sections.Add(k_section);
-            k_section.AddItem("version", 1);
-            //PageLayoutDescrFile=C:/git_bobc/WebRadio/hardware/test_main - Copy/custom.kicad_wks
-            k_section.AddItem("LastNetListRead", "");
-            //k_section.AddItem("UseCmpFile", 1);
-            k_section.AddItem("PadDrill", 0.6f);
-            k_section.AddItem("PadDrillOvalY", 0.6f);
-            k_section.AddItem("PadSizeH", 1.5f);
-            k_section.AddItem("PadSizeV", 1.5f);
-            k_section.AddItem("PcbTextSizeV", 1.5f);
-            k_section.AddItem("PcbTextSizeH", 1.5f);
-            k_section.AddItem("PcbTextThickness", 0.3f);
-            k_section.AddItem("ModuleTextSizeV", 1.0f);
-            k_section.AddItem("ModuleTextSizeH", 1.0f);
-            k_section.AddItem("ModuleTextSizeThickness", 0.15f);
-            k_section.AddItem("SolderMaskClearance", 0.2f);
-            k_section.AddItem("SolderMaskMinWidth", 0.0f);
-            k_section.AddItem("DrawSegmentWidth", 0.2f);
-            k_section.AddItem("BoardOutlineThickness", 0.1f);
-            k_section.AddItem("ModuleOutlineThickness", 0.15f);
-
-            k_section = new k.Project.Section("cvpcb");
-            k_project.Sections.Add(k_section);
-            k_section.AddItem("version", 1);
-            k_section.AddItem("NetIExt", "net");
-
-            k_section = new k.Project.Section("eeschema");
-            k_project.Sections.Add(k_section);
-            k_section.AddItem("version", 1);
-            k_section.AddItem("LibDir", "");
-
-            k_section = new k.Project.Section("eeschema/libraries");
-            k_project.Sections.Add(k_section);
-            int index = 1;
-            foreach (string lib in LibNames)
-            {
-                k_section.AddItem("LibName" + index, lib);
-                index++;
-            }
-
-            //
-            /*
-            [schematic_editor]
-            version=1
-            PageLayoutDescrFile=custom.kicad_wks
-            PlotDirectoryName=
-            SubpartIdSeparator=0
-            SubpartFirstId=65
-            NetFmtName=
-            SpiceForceRefPrefix=0
-            SpiceUseNetNumbers=0
-            LabSize=60
-            */
-
-
-            //
-            string filename = Path.Combine(OutputFolder, ProjectName);
-            Trace(string.Format ("Writing project file {0}", Path.ChangeExtension(filename,".pro")));
-            
-            k_project.SaveToFile(filename);
         }
 
 
@@ -1486,7 +1151,7 @@ namespace EagleConverter
             Sheet source_sheet = schematic.Drawing.Schematic.Sheets.Sheet[EagleSheetNumber];
             SheetLegacy k_sheet = new SheetLegacy();
             k_sheet.Filename = DestName;
-            k_sheet.LibNames = LibNames;
+            k_sheet.LibNames = libraryConverter.LibNames;
             k_sheet.SheetNumber = SheetNumber;
             k_sheet.SheetCount = NumSheets;
 
@@ -1514,7 +1179,7 @@ namespace EagleConverter
                     ConvertFrame(part.Deviceset);
 
                     k_sheet.PaperName = PageStr;
-                    k_sheet.PageSize = new SizeF(PageSize.Width * mm_to_mil, PageSize.Height * mm_to_mil);
+                    k_sheet.PageSize = new SizeF(PageSize.Width * Common.mm_to_mil, PageSize.Height * Common.mm_to_mil);
                     break;
                 }
             }
@@ -1527,11 +1192,11 @@ namespace EagleConverter
                 k.Schema.sch_text k_text = sch_text.CreateNote(
                     text.mText,
                     StrToPointInchFlip(text.X, text.Y),
-                    StrToInch(text.Size),
-                    xGetAngleFlip(text.Rot, out mirror),
+                    Common.StrToInch(text.Size),
+                    Common.xGetAngleFlip(text.Rot, out mirror),
                     false, false);
 
-                switch (GetAngle(text.Rot))
+                switch (Common.GetAngle(text.Rot))
                 {
                     case 0: break;
                     case 90:
@@ -1567,7 +1232,7 @@ namespace EagleConverter
                 k_sheet.Items.Add(k_line);
             }
 
-            #region === (Instance) components ====
+#region === (Instance) components ====
             foreach (Instance instance in source_sheet.Instances.Instance)
             {
                 // find part -> 
@@ -1622,7 +1287,7 @@ namespace EagleConverter
                 k_comp.fValue.VertJustify = "B";
 
                 // Set Footprint field
-                Device device = AllDevices.Find(x => x.Name == part.Deviceset + part.Device);
+                Device device = libraryConverter.AllDevices.Find(x => x.Name == part.Deviceset + part.Device);
                 if (device != null)
                     k_comp.Footprint = part.Library + ":" + device.Package;
                 k_comp.fPcbFootprint.Pos = new PointF(k_comp.Position.X, k_comp.Position.Y);
@@ -1684,15 +1349,15 @@ namespace EagleConverter
 
                     if (field != null)
                     {
-                        field.Size = (int)StrToInch(attrib.Size);
+                        field.Size = (int)Common.StrToInch(attrib.Size);
 
                         SetFieldAttributes(field, StrToPointInchFlip(attrib.X, attrib.Y),
                             //sym_field.Text.xAngle, sym_field.Text.xMirror, k_comp.Position, attr_angle, attr_mirror);
                             instance_angle, k_comp.Mirror, k_comp.Position, attr_angle, attr_mirror);
 
-                        //PointF p = StrToPointInchFlip (attrib.X, attrib.Y);
+                        //PointF p = Common.StrToPointInchFlip (attrib.X, attrib.Y);
 
-                        //field.Pos = StrToPointInchFlip(attrib.X, attrib.Y);
+                        //field.Pos = Common.StrToPointInchFlip(attrib.X, attrib.Y);
 
                         //debug
                         // field pos rotated about comp pos
@@ -1707,7 +1372,7 @@ namespace EagleConverter
                         //k_sheet.Items.Add(k_line);
 
                         // actual coord of attribute  |__
-                        //p = StrToPointInchFlip(attrib.X, attrib.Y);
+                        //p = Common.StrToPointInchFlip(attrib.X, attrib.Y);
                         //k_line = sch_wire.CreateLine(new PointF(p.X-50, p.Y), new PointF(p.X + 50, p.Y));
                         //k_sheet.Items.Add(k_line);
                         //k_line = sch_wire.CreateLine(new PointF(p.X, p.Y-50), new PointF(p.X, p.Y + 50));
@@ -1720,9 +1385,9 @@ namespace EagleConverter
 
                 k_sheet.Components.Add(k_comp);
             }
-            #endregion
+#endregion
 
-            #region ==== Busses ====
+#region ==== Busses ====
             foreach (Bus bus in source_sheet.Busses.Bus)
             {
                 foreach (Segment segment in bus.Segment)
@@ -1738,10 +1403,10 @@ namespace EagleConverter
                     }
                 }
             }
-            #endregion
+#endregion
 
 
-            #region ==== (Net) look for wires, junctions, labels ====
+#region ==== (Net) look for wires, junctions, labels ====
             foreach (Net net in source_sheet.Nets.Net)
             {
                 foreach (Segment segment in net.Segment)
@@ -1814,7 +1479,7 @@ namespace EagleConverter
                         //angle %= 360;
                         sch_text k_text = sch_text.CreateLocalLabel(net.Name,
                             StrToPointInchFlip(label.X, label.Y),
-                            StrToInch(label.Size),
+                            Common.StrToInch(label.Size),
                             angle);
 
                         // find nearest point
@@ -1827,9 +1492,9 @@ namespace EagleConverter
                     }
                 }
             }
-            #endregion
+#endregion
 
-            #region add no-connects
+#region add no-connects
             if (option_add_no_connects)
             foreach (Instance instance in source_sheet.Instances.Instance)
             {
@@ -1868,7 +1533,7 @@ namespace EagleConverter
 
                         // todo: add no-connects
                         PointF instance_pos = StrToPointInchFlip(instance.X, instance.Y);
-                        PointF pin_pos = StrToPointInch(pin.X, pin.Y);
+                        PointF pin_pos = Common.StrToPointInch(pin.X, pin.Y);
 
                         ExtRotation rot = ExtRotation.Parse(instance.Rot);
                         
@@ -1885,17 +1550,17 @@ namespace EagleConverter
                 }
             }
            
-            #endregion
+#endregion
 
         }
 
-        private void CreateMainSheet(SchematicLegacy k_schematic, int NumSheets)
+        private void CreateMainSheet(SchematicLegacy k_schematic, int NumSheets, string ProjectName)
         {
             List<string> Timestamps = new List<string>() ;
 
             SheetLegacy k_sheet = new SheetLegacy();
             k_sheet.Filename = ProjectName;
-            k_sheet.LibNames = LibNames;
+            k_sheet.LibNames = libraryConverter.LibNames;
             k_sheet.SheetNumber = 1;
             k_sheet.SheetCount = NumSheets;
 
@@ -1915,7 +1580,7 @@ namespace EagleConverter
                 k_sheet.SubSheets.Add(sheet_spec);
 
                 cur_pos.X += 2000;
-                if (cur_pos.X + 1600 > k_sheet.PageSize.Width * mm_to_mil)
+                if (cur_pos.X + 1600 > k_sheet.PageSize.Width * Common.mm_to_mil)
                 {
                     cur_pos.X = 1000;
                     cur_pos.Y += 1500;
@@ -1966,33 +1631,22 @@ namespace EagleConverter
         }
 
 
-        public bool ImportFromEagle(string SourceFilename, string DestFolder)
+        public bool ConvertSchematic (string SourceFilename, string DestFolder, string ProjectName, bool ExtractLibraries)
         {
             bool result = false;
-            LibNames = new List<string>();
-            AllDevices = new List<Device>();
-            AllSymbols = new List<k.Symbol.Symbol>();
-            AllFootprints = new List<k.ModuleDef.Module>();
-            AllComponents = new List<ComponentBase>();
-            footprintTable = new k.Project.FootprintTable();
+            //- LibNames = new List<string>();
+            //- AllDevices = new List<Device>();
+            //- AllSymbols = new List<k.Symbol.Symbol>();
+            //- AllFootprints = new List<k.ModuleDef.Module>();
+            //- FootprintNameMap = new RenameMap();
+
             PartMap = new RenameMap();
-            FootprintNameMap = new RenameMap();
             designRules = new DesignRules();
             AllLabels = new List<PinConnection>();
+            AllComponents = new List<ComponentBase>();
 
             //
-            ProjectName = Path.GetFileNameWithoutExtension(SourceFilename);
-
-            reportFile = new StreamWriter(Path.Combine(DestFolder, "Conversion report.txt"));
-
-            Trace(string.Format("Conversion report on {0}", StringUtils.IsoFormatDateTime (DateTime.Now)));
-            Trace("");
-            Trace("Parameters:");
-            Trace(string.Format("Input project  {0}", SourceFilename));
-            Trace(string.Format("Output project {0}", DestFolder));
-
-            Trace("");
-            Trace("Log:");
+            footprintTable = new k.Project.FootprintTable();
 
             //
             Trace(string.Format("Reading schematic file {0}", SourceFilename));
@@ -2004,7 +1658,12 @@ namespace EagleConverter
             {
                 DrawingOffset = new PointF(10.16f, 12.7f);
 
-                ConvertComponentLibraries();
+                libraryConverter = new LibraryConverter(Parent);
+
+                // if (Extract... ?
+                ConvertComponentLibraries(ExtractLibraries);
+
+                Parent.SetLibNames(libraryConverter.LibNames);
 
                 //
                 foreach (Part part in schematic.Drawing.Schematic.Parts.Part)
@@ -2027,7 +1686,7 @@ namespace EagleConverter
                 else
                 {
                     // create top level
-                    CreateMainSheet(k_schematic, schematic.Drawing.Schematic.Sheets.Sheet.Count + 1);
+                    CreateMainSheet(k_schematic, schematic.Drawing.Schematic.Sheets.Sheet.Count + 1, ProjectName);
 
                     for (int sheet_number = 0; sheet_number < schematic.Drawing.Schematic.Sheets.Sheet.Count; sheet_number++)
                     {
@@ -2075,21 +1734,11 @@ namespace EagleConverter
                     }
                 }
 
-
-
                 //
                 string filename = Path.Combine(OutputFolder, ProjectName + ".sch");
                 Trace(string.Format("Writing schematic {0}", filename));
                 k_schematic.SaveToFile(filename);
 
-
-                ConvertBoardFile(SourceFilename);
-
-                //
-                WriteProjectFile();
-
-                Trace("");
-                Trace("Done");
                 result = true;
             }
             else
@@ -2097,12 +1746,9 @@ namespace EagleConverter
                 result = false;
 
                 Trace(string.Format("error opening {0}", SourceFilename));
-                Trace("");
-                Trace("Terminated due to error");
             }
 
             //
-            reportFile.Close();
 
             return result;
         }

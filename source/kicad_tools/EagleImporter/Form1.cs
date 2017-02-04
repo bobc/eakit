@@ -166,11 +166,11 @@ namespace EagleImporter
                 AppSettingsBase.CreateDirectory(AppSettings.DestFolder);
             }
 
-            EagleUtils utils = new EagleUtils();
-            if (utils.CheckValid(textBoxSource.Text))
-            { 
-                utils.OnTrace += Trace;
-                utils.ImportFromEagle(textBoxSource.Text, textBoxDest.Text);
+            ProjectConverter converter = new ProjectConverter();
+            //if (converter.CheckValid(textBoxSource.Text))
+            {
+                converter.OnTrace += Trace;
+                converter.ConvertProject (textBoxSource.Text, textBoxDest.Text);
             }
         }
 

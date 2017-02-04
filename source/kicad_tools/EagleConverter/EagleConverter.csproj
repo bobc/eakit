@@ -46,8 +46,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BoardConverter.cs" />
+    <Compile Include="Common.cs" />
     <Compile Include="Font\NewStroke.cs" />
     <Compile Include="Font\newstroke_font.cs" />
+    <Compile Include="LibraryConverter.cs" />
+    <Compile Include="ProjectConverter.cs" />
     <Compile Include="SchematicConverter.cs" />
     <Compile Include="PinConnection.cs" />
     <Compile Include="PrefixItem.cs" />
