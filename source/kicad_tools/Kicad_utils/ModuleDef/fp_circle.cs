@@ -31,6 +31,11 @@ namespace Kicad_utils.ModuleDef
             throw new NotImplementedException();
         }
 
+        public override void RotateBy(float angle)
+        {
+            throw new NotImplementedException();
+        }
+
         public override SExpression GetSExpression()
         {
             SExpression result = new SExpression();

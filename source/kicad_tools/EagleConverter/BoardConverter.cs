@@ -428,6 +428,41 @@ namespace EagleConverter
                 foreach (EagleImport.Polygon poly in board.Drawing.Board.Plain.Polygon)
                 {
                     //todo
+
+                    // if layer is tRestrict or bRestrict, create a keepout zone
+                    if ((poly.Layer == "41") || (poly.Layer == "42"))
+                    {
+                        k.Pcb.Zone zone = new k.Pcb.Zone();
+
+                        if (poly.Layer == "41")
+                            zone.layer = k.Layer.GetLayerName(k.Layer.nFront_Cu);
+                        else if (poly.Layer == "42")
+                            zone.layer = k.Layer.GetLayerName(k.Layer.nBack_Cu);
+
+                        zone.net = 0;
+                        zone.net_name = "";
+                        zone.hatch_pitch = 0.508f;
+                        zone.connect_pads_clearance = 0;
+                        zone.min_thickness = 10.0f;
+                        zone.is_filled = false;
+                        zone.fill_arc_segments = 16;
+                        zone.connect_pads_mode = k.Pcb.ZonePadConnection.yes; //solid
+                        zone.fill_thermal_gap = 0.508f;
+                        zone.fill_thermal_bridge_width = 0.508f;
+
+                        zone.is_keepout = true;
+                        zone.outline_style = k.Pcb.ZoneOutlineStyle.none;
+                        zone.keepout_allow_copper_pour = Kicad_utils.Allowed.not_allowed;
+
+                        zone.priority = 7;
+
+                        foreach (Vertex v in poly.Vertex)
+                        {
+                            zone.polygon.Add(StrToPoint_Board(v.X, v.Y));
+                        }
+
+                        k_pcb.Zones.Add(zone);
+                    }
                 }
                 #endregion
 
@@ -518,62 +553,76 @@ namespace EagleConverter
                     foreach (EagleImport.Polygon poly in signal.Polygon)
                     {
                         //<polygon width="0.2032" layer="1" spacing="0.254" isolate="0.254" rank="2">
-                        float width = Common.StrToVal_mm(poly.Width);
+                        //defaults are 6 mil
+                        float width = 0.1524f;
+                        float isolate = 0.1524f;
+                        float spacing = 0.1524f;
                         int rank = int.Parse(poly.Rank);
 
                         k.LayerDescriptor layer = ConvertLayer(poly.Layer);
 
-                        if (k.Layer.IsCopperLayer(layer.Number))
+                        //todo: clearances etc should come from DesignRules?
+
+                        if (!string.IsNullOrEmpty(poly.Width))
+                            width = Common.StrToVal_mm(poly.Width);
+
+                        if (!string.IsNullOrEmpty(poly.Isolate))
+                            isolate = Common.StrToVal_mm(poly.Isolate);
+
+                        if (!string.IsNullOrEmpty(poly.Spacing))
+                            spacing = Common.StrToVal_mm(poly.Spacing);
+
+                        if (k.Layer.IsCopperLayer(layer.Number) || (poly.Layer == "41") || (poly.Layer == "42") )
                         {
                             k.Pcb.Zone zone = new k.Pcb.Zone();
-                            zone.layer = layer.Name;
+
+                            if (poly.Layer == "41")
+                                zone.layer = k.Layer.GetLayerName(k.Layer.nFront_Cu);
+                            else if (poly.Layer == "42")
+                                zone.layer = k.Layer.GetLayerName(k.Layer.nBack_Cu);
+                            else
+                                zone.layer = layer.Name;
+
                             zone.net = k_net.Number;
                             zone.net_name = k_net.Name;
+                            zone.outline_style = k.Pcb.ZoneOutlineStyle.edge;
                             zone.hatch_pitch = 0.508f;
-                            zone.connect_pads_clearance = 0.508f;
-                            zone.min_thickness = width;
+                            zone.connect_pads_clearance = 0.2032f;
+                            zone.min_thickness = width; // ??
+                            zone.fill_arc_segments = 32;
+                            zone.fill_thermal_gap = 0.2032f;
+                            zone.fill_thermal_bridge_width = 0.2032f;
                             zone.is_filled = false;
-                            zone.fill_arc_segments = 16;
-                            zone.fill_thermal_gap = 0.508f;
-                            zone.fill_thermal_bridge_width = 0.508f;
 
                             foreach (Vertex v in poly.Vertex)
                             {
                                 zone.polygon.Add(StrToPoint_Board(v.X, v.Y));
                             }
 
-                            if (poly.Pour == PolygonPour.cutout)
+                            if ( (poly.Pour == PolygonPour.cutout) ||
+                                !k.Layer.IsCopperLayer(layer.Number) )
                             {
-                                zone.outline_style = k.Pcb.ZoneOutlineStyle.none;
                                 zone.is_keepout = true;
+                                zone.outline_style = k.Pcb.ZoneOutlineStyle.none;
                                 zone.keepout_allow_copper_pour = Kicad_utils.Allowed.not_allowed; 
                             }
 
-                            if (!String.IsNullOrEmpty(poly.Spacing))
+                            if (!string.IsNullOrEmpty(poly.Isolate))
                             {
-                                float spacing = Common.StrToVal_mm(poly.Spacing);
-                                zone.outline_style = k.Pcb.ZoneOutlineStyle.edge;
-                                zone.hatch_pitch = spacing;
-                            }
-
-                            zone.fill_arc_segments = 32;
-
-                            if (!String.IsNullOrEmpty(poly.Isolate))
-                            {
-                                float isolate = Common.StrToVal_mm(poly.Isolate);
                                 zone.connect_pads_clearance = isolate;
                             }
 
                             if (poly.Thermals == Bool.yes)
                             {
                                 zone.connect_pads_mode = k.Pcb.ZonePadConnection.thermal_relief;
-                                zone.fill_thermal_gap = width + 0.05f;
-                                zone.fill_thermal_bridge_width = width + 0.05f;
+                                zone.fill_thermal_gap = width + 0.001f; // **
+                                zone.fill_thermal_bridge_width = width + 0.001f; // **
                             }
                             else
                                 zone.connect_pads_mode = k.Pcb.ZonePadConnection.yes;
 
-                            zone.priority = rank;
+                            // priority on KiCad is opposite to rank
+                            zone.priority = 6-rank;
 
                             k_pcb.Zones.Add(zone);
                         }
@@ -616,7 +665,7 @@ namespace EagleConverter
                         int element_angle = (int)elementRot.Rotation;
 
 
-                        // todo: attributes for text
+                        // get attributes for text
 
                         foreach (EagleImport.Attribute attrib in element.Attribute)
                         {

@@ -35,6 +35,11 @@ namespace Kicad_utils.ModuleDef
             end = PointFExt.FlipX(end);
         }
 
+        public override void RotateBy(float angle)
+        {
+            //?
+        }
+
 
         public override SExpression GetSExpression()
         {

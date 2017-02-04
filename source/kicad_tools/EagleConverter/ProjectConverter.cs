@@ -81,7 +81,7 @@ namespace EagleConverter
                     case "bPlace": result.Name = "B.SilkS"; break;
 
                     // 25
-                    case "tNames": result.Name = "F.SilkS"; break;
+                    case "tNames": result.Name = "F.SilkS"; break; // or Fab?
                     // 26
                     case "bNames": result.Name = "B.SilkS"; break;
 
@@ -126,9 +126,11 @@ namespace EagleConverter
                     // 46
                     case "Milling": result.Name = "Dwgs.User"; break; // edge?
 
-                    // 49
+                    // 48 - Document
+
+                    // 49 - Reference
                     case "ReferenceLC": result.Name = "Cmts.User"; break;
-                    // 50
+                    // 50 - ?
                     case "ReferenceLS": result.Name = "Cmts.User"; break;
 
                     // 51

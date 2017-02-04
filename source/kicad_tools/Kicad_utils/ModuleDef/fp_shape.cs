@@ -26,5 +26,10 @@ namespace Kicad_utils.ModuleDef
         {
             layer = Layer.FlipLayer(layer);
         }
+
+        public abstract void RotateBy(float angle);
+        
+        
+
     }
 }

@@ -142,6 +142,13 @@ namespace Kicad_utils.ModuleDef
                 foreach (fp_text text in UserText)
                     text.RotateBy(angle);
 
+            //if (Borders != null)
+            //    foreach (fp_shape shape in Borders)
+            //        shape.RotateBy (angle);
+
+            if (Pads != null)
+                foreach (pad pad in Pads)
+                    pad.RotateBy(angle);
         }
 
         void addToExtent (ref PointF min, ref PointF max, PointF p)

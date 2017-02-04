@@ -111,6 +111,12 @@ namespace Kicad_utils.ModuleDef
             //pad.position.Rotation = -pad.position.Rotation + 360;
         }
 
+        public void RotateBy(float angle)
+        {
+            position.Rotation = MathUtil.NormalizeAngle(position.Rotation + angle);
+        }
+
+
         public SExpression GetSExpression()
         {
             SExpression result = new SExpression();
