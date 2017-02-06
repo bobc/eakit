@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using System.Drawing;
+
 using SExpressions;
 
 namespace Kicad_utils
@@ -22,6 +24,16 @@ namespace Kicad_utils
         public TextEffects()
         {
             font = new FontAttributes();
+
+            horiz_align = TextJustify.center;
+            vert_align = VerticalAlign.center;
+            mirror = false;
+        }
+
+        public TextEffects(float textSize)
+        {
+            font = new FontAttributes();
+            font.Size = new SizeF(textSize, textSize);
 
             horiz_align = TextJustify.center;
             vert_align = VerticalAlign.center;

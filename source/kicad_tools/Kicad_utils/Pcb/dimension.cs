@@ -122,8 +122,8 @@ namespace Kicad_utils.Pcb
 
         public void RotateBy (float angle)
         {
-            caption.at = caption.at.RotateAt(Start, angle);
-            caption.rotation = MathUtil.NormalizeAngle (caption.rotation - angle);
+            caption.Position.At = caption.Position.At.RotateAt(Start, angle);
+            caption.Position.Rotation = MathUtil.NormalizeAngle (caption.Position.Rotation - angle);
 
             foreach (DimensionFeature feature in Features)
                 for (int j= 0; j < feature.Polygon.Count; j++)

@@ -10,12 +10,16 @@ namespace Kicad_utils.Symbol
     public class TextBase
     {
         public string Value;
-        public PointF Pos;
+
+        public Position Pos;
+        //public PointF Pos;
+        //public float Angle; // degrees H = 0, V = 90
+        //public string Orientation; // H / V
+
+        // todo: public TextEffects effects;
 
         public float FontSize;
 
-        public float Angle; // degrees H = 0, V = 90
-        //public string Orientation; // H / V
         public string HorizAlignment;   // C L R
         public string VertAlignment;    // T C B
 
@@ -28,7 +32,8 @@ namespace Kicad_utils.Symbol
 
         public TextBase()
         {
-            Angle = 0f;
+            Pos = new Position();
+
             Visible = true;
             HorizAlignment = SymbolField.HorizAlign_Left;
             VertAlignment = SymbolField.VertAlign_Bottom;

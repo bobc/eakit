@@ -60,7 +60,7 @@
     <Compile Include="ModuleDef\fp_text.cs" />
     <Compile Include="ModuleDef\model.cs" />
     <Compile Include="ModuleDef\pad.cs" />
-    <Compile Include="ModuleDef\Position.cs" />
+    <Compile Include="Common\Position.cs" />
     <Compile Include="Pcb\DimensionFeature.cs" />
     <Compile Include="Pcb\Enums.cs" />
     <Compile Include="Pcb\General.cs" />

@@ -40,7 +40,7 @@ namespace Kicad_utils.Symbol
         public List<SymbolField> UserFields;
 
         // alias
-        public string Alias;
+        public List<string> Alias;
 
         // footprint list
         public List<string> Footprints;
@@ -54,6 +54,7 @@ namespace Kicad_utils.Symbol
 
         public Symbol()
         {
+            Alias = new List<string>();
             Drawings = new List<sym_drawing_base>();
             UserFields = new List<SymbolField>();
         }
@@ -127,8 +128,8 @@ namespace Kicad_utils.Symbol
             }
 
             //
-            if (!string.IsNullOrEmpty(Alias))
-                text.Add(string.Format("ALIAS {0}", Alias));
+            if ((Alias != null) && (Alias.Count!= 0))
+                text.Add(string.Format("ALIAS {0}", string.Join(" ", Alias.ToArray())));
 
             if (Footprints != null)
             {
@@ -208,7 +209,8 @@ namespace Kicad_utils.Symbol
                 }
                 else if (tokens[0].Value == "ALIAS")
                 {
-                    sym.Alias = StringUtils.After(lines[index], " ");
+                    for (int j = 1; j < tokens.Count; j++)
+                        sym.Alias.Add (tokens[j].Value);
                     index++;
                 }
                 else if (tokens[0].Value == "$FPLIST")
@@ -557,14 +559,14 @@ namespace Kicad_utils.Symbol
                 // reposition texts
 
                 // designator at top left
-                fReference.Text.Pos.X = new_outer_extent.Min.X + pin_len;
-                fReference.Text.Pos.Y = new_outer_extent.Max.Y - pin_len + gridsize;
+                fReference.Text.Pos.At.X = new_outer_extent.Min.X + pin_len;
+                fReference.Text.Pos.At.Y = new_outer_extent.Max.Y - pin_len + gridsize;
 
                 // symbol name /value at lower left
-                fValue.Text.Pos.X = new_outer_extent.Max.X - pin_len - RoundToGrid (fValue.Text.Value.Length * fValue.Text.FontSize);
-                if (fValue.Text.Pos.X < RoundToGrid(lower_pins.Max.X))
-                    fValue.Text.Pos.X = RoundToGrid(lower_pins.Max.X) + gridsize;
-                fValue.Text.Pos.Y = new_outer_extent.Min.Y + pin_len - gridsize*2f;
+                fValue.Text.Pos.At.X = new_outer_extent.Max.X - pin_len - RoundToGrid (fValue.Text.Value.Length * fValue.Text.FontSize);
+                if (fValue.Text.Pos.At.X < RoundToGrid(lower_pins.Max.X))
+                    fValue.Text.Pos.At.X = RoundToGrid(lower_pins.Max.X) + gridsize;
+                fValue.Text.Pos.At.Y = new_outer_extent.Min.Y + pin_len - gridsize*2f;
             }
 
             //
@@ -875,13 +877,13 @@ namespace Kicad_utils.Symbol
                                 {
                                     if (pin.Orientation == "R")
                                     {
-                                        text.Pos = new PointF(pin.Pos.X + offset.X + this.Offset, pin.Pos.Y);
+                                        text.Pos = new Position(pin.Pos.X + offset.X + this.Offset, pin.Pos.Y);
                                         text.HorizAlignment = SymbolField.HorizAlign_Left;
                                         text.VertAlignment = SymbolField.VertAlign_Center;
                                     }
                                     else
                                     {
-                                        text.Pos = new PointF(pin.Pos.X + offset.X - this.Offset, pin.Pos.Y);
+                                        text.Pos = new Position(pin.Pos.X + offset.X - this.Offset, pin.Pos.Y);
                                         text.HorizAlignment = SymbolField.HorizAlign_Right;
                                         text.VertAlignment = SymbolField.VertAlign_Center;
                                     }
@@ -890,13 +892,13 @@ namespace Kicad_utils.Symbol
                                 {
                                     if (pin.Orientation == "R")
                                     {
-                                        text.Pos = new PointF(pin.Pos.X + pin.Length / 2, pin.Pos.Y);
+                                        text.Pos = new Position(pin.Pos.X + pin.Length / 2, pin.Pos.Y);
                                         text.HorizAlignment = SymbolField.HorizAlign_Center;
                                         text.VertAlignment = SymbolField.VertAlign_Bottom;
                                     }
                                     else
                                     {
-                                        text.Pos = new PointF(pin.Pos.X - pin.Length / 2 , pin.Pos.Y);
+                                        text.Pos = new Position(pin.Pos.X - pin.Length / 2 , pin.Pos.Y);
                                         text.HorizAlignment = SymbolField.HorizAlign_Center;
                                         text.VertAlignment = SymbolField.VertAlign_Bottom;
                                     }
@@ -911,9 +913,9 @@ namespace Kicad_utils.Symbol
                             if (this.ShowPinNumber)
                             {
                                 if (pin.Orientation == "L")
-                                    text.Pos = new PointF(pin.Pos.X - pin.Length/2, pin.Pos.Y);
+                                    text.Pos = new Position(pin.Pos.X - pin.Length/2, pin.Pos.Y);
                                 else
-                                    text.Pos = new PointF(pin.Pos.X + pin.Length/2, pin.Pos.Y);
+                                    text.Pos = new Position(pin.Pos.X + pin.Length/2, pin.Pos.Y);
 
                                 text.HorizAlignment = SymbolField.HorizAlign_Center;
                                 if (this.Offset == 0)
@@ -931,33 +933,33 @@ namespace Kicad_utils.Symbol
                             {
                                 if (pin.Orientation == "U")
                                 {
-                                    text.Pos = new PointF(pin.Pos.X, pin.Pos.Y + offset.Y + this.Offset);
+                                    text.Pos = new Position(pin.Pos.X, pin.Pos.Y + offset.Y + this.Offset);
                                     text.HorizAlignment = SymbolField.HorizAlign_Left;
                                 }
                                 else
                                 {
-                                    text.Pos = new PointF(pin.Pos.X , pin.Pos.Y + offset.Y - this.Offset);
+                                    text.Pos = new Position(pin.Pos.X , pin.Pos.Y + offset.Y - this.Offset);
                                     text.HorizAlignment = SymbolField.HorizAlign_Right;
                                 }
                                 text.VertAlignment = SymbolField.VertAlign_Center;
                                 text.FontSize = pin.SizeName;
                                 text.Value = pin.Name;
-                                text.Angle = 90;
+                                text.Pos.Rotation = 90;
                                 DrawText(canvas, text, brush_text);
                             }
 
                             if (this.ShowPinNumber)
                             {
                                 if (pin.Orientation == "D")
-                                    text.Pos = new PointF(pin.Pos.X, pin.Pos.Y - pin.Length / 2);
+                                    text.Pos = new Position(pin.Pos.X, pin.Pos.Y - pin.Length / 2);
                                 else
-                                    text.Pos = new PointF(pin.Pos.X, pin.Pos.Y + pin.Length / 2);
+                                    text.Pos = new Position(pin.Pos.X, pin.Pos.Y + pin.Length / 2);
 
                                 text.HorizAlignment = SymbolField.HorizAlign_Center;
                                 text.VertAlignment = SymbolField.VertAlign_Bottom;
                                 text.FontSize = pin.SizeName;
                                 text.Value = pin.PinNumber;
-                                text.Angle = 90;
+                                text.Pos.Rotation = 90;
                                 DrawText(canvas, text, brush);
                             }
 
@@ -1060,7 +1062,7 @@ namespace Kicad_utils.Symbol
 
             if (text.Visible)
             {
-                Point sp1 = canvas.ToScreen(text.Pos);
+                Point sp1 = canvas.ToScreen(text.Pos.At);
                 FontStyle style = FontStyle.Regular;
 
                 int FontHeight = canvas.ToScreen(text.FontSize);
@@ -1140,7 +1142,7 @@ namespace Kicad_utils.Symbol
 
                 canvas.g.TranslateTransform(sp1.X, sp1.Y);
 
-                if (text.Angle == 90)
+                if (text.Pos.Rotation == 90)
                     canvas.g.RotateTransform(-90);
 
                 canvas.g.DrawString(text.Value, font, brush, srect, strF);

@@ -35,9 +35,8 @@ namespace Kicad_utils.Symbol
         {
             this.Text = new TextBase();
             this.Text.Value = "~";
-            this.Text.Pos = new PointF(0, 0);
+            this.Text.Pos = new Position (0, 0, Orientation_Horiz);
             this.Text.FontSize = 60;
-            this.Text.Angle = Orientation_Horiz;
             this.Text.HorizAlignment = "C";
             this.Text.VertAlignment = "C";
             this.Text.Italic = false;
@@ -54,9 +53,9 @@ namespace Kicad_utils.Symbol
 
             this.Text = new TextBase();
             this.Text.Value = Value;
-            this.Text.Pos = at;
+            this.Text.Pos = new Position (at.X, at.Y);
+            this.Text.Pos.Rotation = orientation == "H" ? Orientation_Horiz : Orientation_Vert;
             this.Text.FontSize = font_size;
-            this.Text.Angle = orientation == "H" ? Orientation_Horiz : Orientation_Vert;
             this.Text.HorizAlignment = horizAlignment;
             this.Text.VertAlignment = vertAlign;
             this.Text.Visible = visible;
@@ -72,9 +71,9 @@ namespace Kicad_utils.Symbol
 
             this.Text = new TextBase();
             this.Text.Value = value;
-            this.Text.Pos = at;
+            this.Text.Pos = new Position (at);
             this.Text.FontSize = font_size;
-            this.Text.Angle = orientation == "H" ? Orientation_Horiz : Orientation_Vert;
+            this.Text.Pos.Rotation = orientation == "H" ? Orientation_Horiz : Orientation_Vert;
             this.Text.HorizAlignment = horizAlignment;
             this.Text.VertAlignment = vertAlign;
             this.Text.Visible = visible;
@@ -87,10 +86,9 @@ namespace Kicad_utils.Symbol
             SymbolField result = new SymbolField();
 
             result.Text.Value = tokens[1].Value;
-            result.Text.Pos.X = tokens[2].IntValue;
-            result.Text.Pos.Y = tokens[3].IntValue;
+            result.Text.Pos = new Position(tokens[2].IntValue, tokens[3].IntValue);
             result.Text.FontSize = tokens[4].IntValue;
-            result.Text.Angle = tokens[5].Value == "H" ? Orientation_Horiz : Orientation_Vert; ;
+            result.Text.Pos.Rotation = tokens[5].Value == "H" ? Orientation_Horiz : Orientation_Vert; ;
             result.Text.Visible = tokens[6].Value == "V";
             result.Text.HorizAlignment = tokens[7].Value;
 
@@ -113,9 +111,9 @@ namespace Kicad_utils.Symbol
 
             string result = string.Format("\"{0}\" {1} {2} {3} {4} {5} {6} {7}{8}{9}",
                 Text.Value,
-                (int)Text.Pos.X, (int)Text.Pos.Y,
+                (int)Text.Pos.At.X, (int)Text.Pos.At.Y,
                 (int)Text.FontSize,
-                Text.Angle == 0 ? "H" : "V",
+                Text.Pos.Rotation == 0 ? "H" : "V",
                 Text.Visible ? "V" : "I",
                 Text.HorizAlignment,
 

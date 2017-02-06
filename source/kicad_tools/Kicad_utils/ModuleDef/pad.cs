@@ -43,7 +43,9 @@ namespace Kicad_utils.ModuleDef
         public Drill drill;
         public SizeF oval_drill_size;
 
-        public string layers; //    List/string , a wildcard mask PSV names e.g "F.Cu|F.Paste|F.Mask"
+        //public string layers; //    List/string , a wildcard mask PSV names e.g "F.Cu|F.Paste|F.Mask"
+        public LayerList _layers;
+
         public Net net;       // net <number> <string>    // use by pcb file  
 
         public float die_length;
@@ -82,7 +84,8 @@ namespace Kicad_utils.ModuleDef
             this.size = size;
             this.drill = new Drill(drill);
 
-            this.layers = layers;
+            this._layers = new LayerList();
+            this._layers.ParseLayers(layers);
         }
 
         private void set_layers ()
@@ -90,13 +93,22 @@ namespace Kicad_utils.ModuleDef
             switch (type)
             {
                 case "thru_hole":
-                    this.layers = "*.Cu|B.Mask|F.Mask"; break;
+                    this._layers.AddLayer("*.Cu");
+                    this._layers.AddLayer("B.Mask");
+                    this._layers.AddLayer("F.Mask");
+                    break;
                 case "smd":
-                    this.layers = "F.Cu|F.Mask|F.Paste"; break;
+                    this._layers.AddLayer("F.Cu");
+                    this._layers.AddLayer("F.Mask");
+                    this._layers.AddLayer("F.Paste");
+                    break;
                 case "connect":
-                    this.layers = "F.Cu|F.Mask"; break;
+                    this._layers.AddLayer("F.Cu");
+                    this._layers.AddLayer("F.Mask");
+                    break;
                 case "np_thru_hole":
-                    this.layers = "*.Cu"; break;
+                    this._layers.AddLayer("*.Cu");
+                    break;
             }
         }
 
@@ -105,7 +117,8 @@ namespace Kicad_utils.ModuleDef
             // trapezoid, oval shapes etc ?
             // round, rect are symmetric
 
-            layers = Layer.ToString(Layer.FlipLayers(Layer.ParseLayers(layers)));
+            //layers = Layer.ToString(Layer.FlipLayers(Layer.ParseLayers(layers)));
+            _layers.FlipLayers();
 
             position.At = position.At.FlipX();
             //pad.position.Rotation = -pad.position.Rotation + 360;
@@ -137,8 +150,8 @@ namespace Kicad_utils.ModuleDef
             if (drill != null)
                 result.Items.Add(drill.GetSExpression());
 
-            if (layers != null)
-                result.Items.Add(new SExpression("layers", Layer.GetLayerList(layers)));
+            if (_layers != null)
+                result.Items.Add(new SExpression("layers", _layers.ToString()));
 
             if (net != null)
                 result.Items.Add(net.GetSExpression());
@@ -175,7 +188,7 @@ namespace Kicad_utils.ModuleDef
             text.Add(string.Format("Sh \"{0}\" {1} {2} {3} {4} {5} {6}",
                 number, GetShape(), size.Width, size.Height, 0, 0, 0));
             text.Add(string.Format("Dr {0} {1} {2}", drill, 0, 0));
-            text.Add(string.Format("At {0} {1} {2}", GetType(), "N", Layer.GetLayerBitmaskString_Legacy(layers)));  // layer mask "00E0FFFF"
+            text.Add(string.Format("At {0} {1} {2}", GetType(), "N", Layer.GetLayerBitmaskString_Legacy(_layers.ToString())));  // layer mask "00E0FFFF"
             text.Add(string.Format("Ne 0 \"\""));
             text.Add(string.Format("Po {0} {1}", position.At.X, position.At.Y));
 
@@ -246,7 +259,7 @@ namespace Kicad_utils.ModuleDef
                             result.drill = Drill.Parse(sub);
                             break;
                         case "layers":
-                            result.layers = Layer.ParseLayers(sub);
+                            result._layers.ParseLayers(sub);
                             break;
                         case "net":
                             result.net = Net.Parse(sub);

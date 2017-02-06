@@ -37,8 +37,7 @@ namespace Kicad_utils.Symbol
             this.DeMorganAlternate = 0;
 
             this.Text = new TextBase();
-            this.Text.Angle = Angle;
-            this.Text.Pos = Pos;
+            this.Text.Pos = new Position (Pos.X, Pos.Y, Angle);
             this.Text.FontSize = Size;
             this.Text.Visible = !Hidden;
             this.Text.Value = Value;
@@ -53,8 +52,8 @@ namespace Kicad_utils.Symbol
         {
             // T angle X Y       size hidden part dmg text italic bold Halign Valign
             return string.Format("T {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}",
-                (int)(Text.Angle * 10.0),
-                (int)Text.Pos.X, (int)Text.Pos.Y,
+                (int)(Text.Pos.Rotation * 10.0),
+                (int)Text.Pos.At.X, (int)Text.Pos.At.Y,
                 (int)Text.FontSize,
                 Text.Visible ? "0" : "1",   // hidden
                 Unit,
@@ -71,9 +70,7 @@ namespace Kicad_utils.Symbol
         {
             sym_text result = new sym_text();
 
-            result.Text.Angle = (float)tokens[1].GetValueAsDouble() / 10.0f;
-            result.Text.Pos.X = tokens[2].IntValue;
-            result.Text.Pos.Y = tokens[3].IntValue;
+            result.Text.Pos = new Position(tokens[2].IntValue, tokens[3].IntValue, (float)tokens[1].GetValueAsDouble() / 10.0f);
             result.Text.FontSize = (float)tokens[4].GetValueAsDouble();
             result.Text.Visible = tokens[5].Value != "1";
             result.Unit = tokens[6].IntValue;

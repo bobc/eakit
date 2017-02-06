@@ -22,9 +22,11 @@ namespace Kicad_utils.Schema
         public int Number;  // coded "name"
         public string Value;
 
-        //
-        public string Orientation; // H (horizontal) or V (vertical).
+        // todo: replace with Position
         public PointF Pos;
+        public string Orientation; // H (horizontal) or V (vertical).
+
+        // todo: replace with TextEffects
         public int Size;
 
         //private string Flags;    // 0000 = visible or 0001 = invisible

@@ -13,12 +13,16 @@ namespace Kicad_utils.Symbol
     {
         public string Name;
         public string PinNumber;
+
+        // replace with Position?
         public PointF Pos;
-        public int Length;
         /// <summary>
         /// Up Down Left Right
         /// </summary>
-        public string Orientation; 
+        public string Orientation;
+
+        public int Length;
+
         public float SizeNum;
         public float SizeName;
         /// <summary>
@@ -78,20 +82,26 @@ namespace Kicad_utils.Symbol
             this.Visible = pinVisible;
         }
 
+        public static sym_pin Clone (sym_pin src)
+        {
+            sym_pin result = new sym_pin(src.Unit, src.Name, src.PinNumber, src.Pos, src.Length, src.Orientation, src.SizeNum, src.SizeName, src.Type, src.Shape, src.Visible);
+            return result;
+        }
+
         // Legacy format
         public override string ToString()
         {
             // X name pin X Y length orientation sizenum sizename part dmg type shape
             return string.Format("X {0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}{12}",
-                Name,
-                PinNumber,
-                (int)Pos.X, (int)Pos.Y,
-                Length, Orientation,
-                (int)SizeNum, (int)SizeName,
-                Unit, DeMorganAlternate,
-                Type,   //10
-                Visible ? "" : "N",
-                Shape   //11
+                Name,                       // 0
+                PinNumber,                  // 1
+                (int)Pos.X, (int)Pos.Y,     // 2,3
+                Length, Orientation,        // 4,5
+                (int)SizeNum, (int)SizeName,// 6,7
+                Unit, DeMorganAlternate,    // 8,9
+                Type,                       // 10
+                Visible ? "" : "N",         // 11
+                Shape                       // 12
                 );
         }
 

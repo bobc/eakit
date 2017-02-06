@@ -184,7 +184,7 @@ namespace Kicad_utils.ModuleDef
 
             if (Pads != null)
             foreach (pad a_pad in Pads)
-                if (a_pad.layers.Contains(layer))
+                if (a_pad._layers.Contains(layer))
                 {
                     PointF pos = new PointF(a_pad.position.At.X - a_pad.size.Width / 2,
                         a_pad.position.At.Y - a_pad.size.Height / 2);

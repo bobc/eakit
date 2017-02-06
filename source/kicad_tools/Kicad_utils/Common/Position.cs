@@ -6,7 +6,7 @@ using System.Text;
 using System.Drawing;
 using SExpressions;
 
-namespace Kicad_utils.ModuleDef
+namespace Kicad_utils
 {
     public class Position
     {

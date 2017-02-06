@@ -90,24 +90,23 @@ namespace Kicad_utils.ModuleDef
 
             //position.At = position.At.Rotate(angle);
 
+            position.Rotation = final_angle;
+
             switch ((int)final_angle)
             {
-                case 0: position.Rotation = 0;
+                case 0: 
                     if (effects.horiz_align != TextJustify.center)
                         effects.horiz_align = TextJustify.left;
                     break;
                 case 90:
-                    position.Rotation = 90;
                     if (effects.horiz_align != TextJustify.center)
                         effects.horiz_align = TextJustify.left;
                     break;
                 case 180:
-                    position.Rotation = 0;
                     if (effects.horiz_align != TextJustify.center)
                         effects.horiz_align = TextJustify.right;
                     break;
                 case 270:
-                    position.Rotation = 90;
                     if (effects.horiz_align != TextJustify.center)
                         effects.horiz_align = TextJustify.right;
                     break;

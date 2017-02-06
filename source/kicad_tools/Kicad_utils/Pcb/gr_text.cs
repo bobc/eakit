@@ -13,40 +13,50 @@ namespace Kicad_utils.Pcb
     //     Test 
     //     (at 196.7564 126.9798) 
     //     (layer B.SilkS)
-    //     (effects ( 
-    //                 font (size 1.5 1.5) 
-    //                      (thickness 0.3)
-    //              ) 
-    //     (justify mirror))
+    //     (effects 
+    //        (font (size 1.5 1.5) 
+    //              (thickness 0.3)
+    //        ) 
+    //        (justify mirror)
+    //     )
     //  )
 
 
     public class gr_text : graphic_base
     {
         public string Value;
-        public PointF at;
-        public float rotation;
-        public FontAttributes font;
-        public TextJustify horiz_align;
-        public bool mirror;
+
+        public Position Position;
+        //public PointF at;
+        //public float rotation;
+
+        public TextEffects effects;
+
+        //public FontAttributes font;
+        //public TextJustify horiz_align;
+        //public bool mirror;
 
         public gr_text()
         {
+            Position = new Position();
+            effects = new TextEffects();
         }
 
         public gr_text(string value, PointF at, string layer, SizeF font_size, float thickness, float rotation)
         {
-            this.Value = value;
-            this.at = at;
             this.layer = layer;
-            this.rotation = rotation;
 
-            this.font = new FontAttributes();
-            this.font.Size = font_size;
-            this.font.thickness = thickness;
+            this.Value = value;
+            this.Position = new Position();
+            this.Position.At = at;
+            this.Position.Rotation = rotation;
 
-            horiz_align = TextJustify.center;
-            mirror = false;
+            this.effects = new TextEffects();
+            this.effects.font.Size = font_size;
+            this.effects.font.thickness = thickness;
+
+            this.effects.horiz_align = TextJustify.center;
+            this.effects.mirror = false;
         }
 
         public gr_text(gr_text src)
@@ -54,16 +64,18 @@ namespace Kicad_utils.Pcb
             this.layer = src.layer;
 
             this.Value = src.Value;
-            this.at = src.at;
-            this.rotation = src.rotation;
+            this.Position = new Position();
+            this.Position.At = src.Position.At;
+            this.Position.Rotation = src.Position.Rotation;
 
-            this.font = new FontAttributes();
-            this.font.Size = src.font.Size;
-            this.font.thickness = src.font.thickness;
-            this.font.italic = src.font.italic;
-
-            this.horiz_align = src.horiz_align;
-            this.mirror = src.mirror;
+            this.effects = new TextEffects();
+            this.effects.font = new FontAttributes();
+            this.effects.font.Size = src.effects.font.Size;
+            this.effects.font.thickness = src.effects.font.thickness;
+            this.effects.font.italic = src.effects.font.italic;
+            this.effects.vert_align = src.effects.vert_align;
+            this.effects.horiz_align = src.effects.horiz_align;
+            this.effects.mirror = src.effects.mirror;
         }
 
         public override SExpression GetSExpression()
@@ -73,36 +85,35 @@ namespace Kicad_utils.Pcb
             result.Name = "gr_text";
             result.Items = new List<SNodeBase>();
             result.Items.Add(new SNodeAtom(Value));
-            result.Items.Add(new SExpression("at", new List<SNodeBase>{
-                new SNodeAtom(at.X), 
-                new SNodeAtom(at.Y),
-                new SNodeAtom(rotation)
-            }));
+
+            result.Items.Add(Position.GetSExpression());
             result.Items.Add(new SExpression("layer", layer));
 
-            SExpression effects = new SExpression();
-            {
-                effects.Name = "effects";
-                effects.Items = new List<SNodeBase>();
+            result.Items.Add(effects.GetSExpression());
 
-                effects.Items.Add(font.GetSExpression());
+            //SExpression effects = new SExpression();
+            //{
+            //    effects.Name = "effects";
+            //    effects.Items = new List<SNodeBase>();
 
-                if ((horiz_align != TextJustify.center) || mirror)
-                {
-                    SExpression justify = new SExpression();
-                    justify.Name = "justify";
-                    justify.Items = new List<SNodeBase>();
-                    if (horiz_align == TextJustify.left)
-                        justify.Items.Add(new SNodeAtom("left"));
-                    else if (horiz_align == TextJustify.right)
-                        justify.Items.Add(new SNodeAtom("right"));
+            //    effects.Items.Add(font.GetSExpression());
 
-                    if (mirror)
-                        justify.Items.Add(new SNodeAtom("mirror"));
-                    effects.Items.Add(justify);
-                }
-            }
-            result.Items.Add(effects);
+            //    if ((horiz_align != TextJustify.center) || mirror)
+            //    {
+            //        SExpression justify = new SExpression();
+            //        justify.Name = "justify";
+            //        justify.Items = new List<SNodeBase>();
+            //        if (horiz_align == TextJustify.left)
+            //            justify.Items.Add(new SNodeAtom("left"));
+            //        else if (horiz_align == TextJustify.right)
+            //            justify.Items.Add(new SNodeAtom("right"));
+
+            //        if (mirror)
+            //            justify.Items.Add(new SNodeAtom("mirror"));
+            //        effects.Items.Add(justify);
+            //    }
+            //}
+            //result.Items.Add(effects);
 
             return result;
         }
@@ -121,11 +132,10 @@ namespace Kicad_utils.Pcb
 
             if (sub.Name == "at")
             {
-                float x = float.Parse((sub.Items[0] as SNodeAtom).Value);
-                float y = float.Parse((sub.Items[1] as SNodeAtom).Value);
-
-                result.at = new PointF(x, y);
+                result.Position = Position.Parse(sub);
             }
+
+            // TODO:
 
             return result;
         }

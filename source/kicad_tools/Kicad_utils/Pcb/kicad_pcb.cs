@@ -341,7 +341,7 @@ namespace Kicad_utils.Pcb
                 {
                     gr_text text = node as gr_text;
 
-                    Point sp1 = canvas.ToScreen(text.at);
+                    Point sp1 = canvas.ToScreen(text.Position.At);
                     Font font = new Font ("Arial", 10, FontStyle.Regular,GraphicsUnit.Pixel);
 
                     canvas.g.DrawString(text.Value, font, Brushes.White, sp1);

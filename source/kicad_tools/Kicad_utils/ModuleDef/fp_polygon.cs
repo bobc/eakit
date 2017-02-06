@@ -29,6 +29,16 @@ namespace Kicad_utils.ModuleDef
                 Polygon.Add(poly.GetPoint(j));
         }
 
+        public fp_polygon(List<PointF> poly, string layer, float width)
+        {
+            this.layer = layer;
+            this.width = width;
+
+            Polygon = new List<PointF>();
+            for (int j = 0; j < poly.Count; j++)
+                Polygon.Add(poly [j]);
+        }
+
         public fp_polygon(PointF p1, PointF p2, string layer, float width)
         {
             this.layer = layer;

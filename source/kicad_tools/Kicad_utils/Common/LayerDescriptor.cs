@@ -42,26 +42,26 @@ namespace Kicad_utils
             return result;
         }
 
-        public LayerDescriptor FlipLayer()
+        public LayerDescriptor FlipLayer(LayerList referenceLayers)
         {
             LayerDescriptor result = this.Clone();
 
-            if (result.Number < Layer.NumCopperLayers)
+            if (result.Number < LayerList.NumCopperLayers)
             {
-                result.Number = Layer.NumCopperLayers -1 - result.Number;
-                result.Name = Layer.GetLayerName(result.Number);
+                result.Number = LayerList.NumCopperLayers -1 - result.Number;
+                result.Name = referenceLayers.GetLayerName(result.Number);
             }
             else
             {
                 if (result.Name.StartsWith ("F."))
                 {
                     result.Name = Layer.MakeLayerName("B", result.Name);
-                    result.Number = Layer.GetLayerNumber(result.Name);
+                    result.Number = referenceLayers.GetLayerNumber(result.Name);
                 }
                 else if (result.Name.StartsWith("B."))
                 {
                     result.Name = Layer.MakeLayerName("F", result.Name);
-                    result.Number = Layer.GetLayerNumber(result.Name);
+                    result.Number = referenceLayers.GetLayerNumber(result.Name);
                 }
             }
 

@@ -17,6 +17,16 @@ namespace Kicad_utils.Symbol
         public sym_circle()
         { }
 
+        public sym_circle(int unit, float penSize, FillTypes fill, PointF center, float radius)
+        {
+            this.Unit = unit;
+            this.PenSize = penSize;
+            this.Fill = fill;
+
+            this.Position = center;
+            this.Radius = radius;
+        }
+
         public new static sym_circle Parse(List<Token> tokens)
         {
             sym_circle result = new sym_circle();
