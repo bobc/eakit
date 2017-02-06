@@ -566,7 +566,7 @@ namespace EagleConverter
                 if (lib.Name == "frames")
                     continue;
 
-                libraryConverter.ConvertLibrary(lib, schematic.Drawing.Layers.Layer, OutputFolder, ExtractLibraries);
+                libraryConverter.ConvertLibrary(lib.Name, lib, schematic.Drawing.Layers.Layer, OutputFolder, ExtractLibraries);
 
                 //todo: check if any footprints were written
                 footprintTable.Entries.Add(new Kicad_utils.Project.LibEntry(lib.Name, "KiCad", @"$(KIPRJMOD)\\" + lib.Name + ".pretty", "", ""));
@@ -1272,7 +1272,7 @@ namespace EagleConverter
                 }
 
                 // set a default pos/
-                k_comp.fReference.Pos = new PointF(k_comp.Position.X + k_symbol.fReference.Text.Pos.X, k_comp.Position.Y + k_symbol.fReference.Text.Pos.Y);
+                k_comp.fReference.Pos = new PointF(k_comp.Position.X + k_symbol.fReference.Text.Pos.At.X, k_comp.Position.Y + k_symbol.fReference.Text.Pos.At.Y);
                 k_comp.fReference.HorizJustify = "L";
                 k_comp.fReference.VertJustify = "B";
 
@@ -1282,7 +1282,7 @@ namespace EagleConverter
                 else
                     k_comp.Value = k_symbol.fValue.Text.Value;
 
-                k_comp.fValue.Pos = new PointF(k_comp.Position.X + k_symbol.fValue.Text.Pos.X, k_comp.Position.Y + k_symbol.fValue.Text.Pos.Y);
+                k_comp.fValue.Pos = new PointF(k_comp.Position.X + k_symbol.fValue.Text.Pos.At.X, k_comp.Position.Y + k_symbol.fValue.Text.Pos.At.Y);
                 k_comp.fValue.HorizJustify = "L";
                 k_comp.fValue.VertJustify = "B";
 

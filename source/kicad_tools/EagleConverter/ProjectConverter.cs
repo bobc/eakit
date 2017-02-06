@@ -36,8 +36,81 @@ namespace EagleConverter
             }
         }
 
+        /*
+        Predefined EAGLE Layers
+        =======================
+        Layout
+        ------
+        1 Top 				Tracks, top side
+        2 Route2            Inner layer
+        3 Route3            Inner layer
+        4 Route4            Inner layer
+        5 Route5            Inner layer
+        6 Route6            Inner layer
+        7 Route7            Inner layer
+        8 Route8            Inner layer
+        9 Route9            Inner layer
+        10 Route10          Inner layer
+        11 Route11          Inner layer
+        12 Route12          Inner layer
+        13 Route13          Inner layer
+        14 Route14          Inner layer
+        15 Route15          Inner layer
+        16 Bottom           Tracks, bottom side
+        17 Pads             Pads (through-hole)
+        18 Vias             Vias (through-hole)
+        19 Unrouted         Airwires (rubberbands)
+        20 Dimension        Board outlines (circles for holes)
+        21 tPlace           Silk screen, top side
+        22 bPlace           Silk screen, bottom side
+        23 tOrigins         Origins, top side
+        24 bOrigins         Origins, bottom side
+        25 tNames           Service print, top side
+        26 bNames           Service print, bottom side
+        27 tValues          Component VALUE, top side
+        28 bValues          Component VALUE, bottom side
+        29 tStop            Solder stop mask, top side
+        30 bStop            Solder stop mask, bottom side
+        31 tCream           Solder cream, top side
+        32 bCream           Solder cream, bottom side
+        33 tFinish          Finish, top side
+        34 bFinish          Finish, bottom side
+        35 tGlue            Glue mask, top side
+        36 bGlue            Glue mask, bottom side
+        37 tTest            Test and adjustment inf., top side
+        38 bTest            Test and adjustment inf. bottom side
+        39 tKeepout         Nogo areas for components, top side
+        40 bKeepout         Nogo areas for components, bottom side
+        41 tRestrict        Nogo areas for tracks, top side
+        42 bRestrict        Nogo areas for tracks, bottom side
+        43 vRestrict        Nogo areas for via-holes
+        44 Drills           Conducting through-holes
+        45 Holes            Non-conducting holes
+        46 Milling          Milling
+        47 Measures         Measures
+        48 Document         General documentation
+        49 Reference        Reference marks
+        51 tDocu            Part documentation, top side
+        52 bDocu            Part documentation, bottom side
+
+        Schematic
+        ---------
+        91 Nets             Nets
+        92 Busses           Buses
+        93 Pins             Connection points for component symbols
+                            with additional information
+        94 Symbols          Shapes of component symbols
+        95 Names            Names of component symbols
+        96 Values           Values/component types
+        97 Info             General information
+        98 Guide            Guide lines
+
+
+
+        */
+
         //
-        public k.LayerDescriptor ConvertLayer(List<Layer> LayerList, string number)
+        public k.LayerDescriptor ConvertLayer(List<Layer> LayerList, string number, string message = "")
         {
             k.LayerDescriptor result = new Kicad_utils.LayerDescriptor();
 
@@ -139,13 +212,13 @@ namespace EagleConverter
                     case "bDocu": result.Name = "B.Fab"; break;
 
                     default:
-                        Trace(string.Format("warning: layer not found: {0} {1}", number, layer.Name));
+                        Trace(string.Format("warning: layer not found: {0} {1} {2}", message, number, layer.Name));
                         result.Name = "Cmts.User";
                         break;
                 }
             }
 
-            result.Number = k.Layer.GetLayerNumber(result.Name);
+            result.Number = k.LayerList.StandardLayers.GetLayerNumber(result.Name);
             return result;
         }
 
@@ -233,7 +306,7 @@ namespace EagleConverter
         void WriteProjectFile (string OutputFolder, string ProjectName)
         { 
             string filename = Path.Combine(OutputFolder, ProjectName);
-            Trace(string.Format("Writing project file {0}", Path.ChangeExtension(filename, ".pro")));
+            Trace(string.Format("Writing project file {0}", filename + ".pro"));
 
             k_project.SaveToFile(filename);
         }
@@ -247,17 +320,17 @@ namespace EagleConverter
         public bool ConvertProject (string SourceFilename, string DestFolder)
         {
             bool result = false;
+            bool IsProject = true;
 
             string ProjectName;
             string SourceFolder;
-            bool bWriteProjectFile = true;
-
+            string testname;
+            string extension;
             //
             SourceFolder = Path.GetDirectoryName(SourceFilename);
             ProjectName = Path.GetFileNameWithoutExtension(SourceFilename);
 
-
-            reportFile = new StreamWriter(Path.Combine(DestFolder, "Conversion report.txt"));
+            reportFile = new StreamWriter(Path.Combine(DestFolder, ProjectName + "-Conversion report.txt"));
 
             Trace(string.Format("Conversion report on {0}", StringUtils.IsoFormatDateTime(DateTime.Now)));
             Trace("");
@@ -273,24 +346,30 @@ namespace EagleConverter
 
             Files.Add(SourceFilename);
 
+            extension = Path.GetExtension(SourceFilename).ToLowerInvariant();
+            if ((extension == ".sch") || (extension == ".brd"))
+                IsProject = true;
+            else
+                IsProject = false;
+
             if (Path.GetExtension(SourceFilename).ToLowerInvariant() == ".sch")
-                Files.Add(Path.Combine(SourceFolder, Path.ChangeExtension(ProjectName, ".brd")));
-
-
-            //Files.Add(Path.Combine(SourceFolder, Path.ChangeExtension(ProjectName, ".sch")));
-            //Files.Add(Path.Combine(SourceFolder, Path.ChangeExtension(ProjectName, ".brd")));
-            // libraries...
+            {
+                testname = Path.Combine(SourceFolder, ProjectName + ".brd");
+                if (File.Exists (testname))
+                    Files.Add(testname);
+            }
 
             SchematicConverter schema = new SchematicConverter(this);
             BoardConverter board = new BoardConverter(this);
             LibraryConverter library = new LibraryConverter(this);
 
-            CreateProject();
+            if (IsProject)
+                CreateProject();
             
 
             foreach (string file in Files)
             {
-                string extension = Path.GetExtension(file).ToLowerInvariant();
+                extension = Path.GetExtension(file).ToLowerInvariant();
 
                 if (extension == ".sch")
                     result = schema.ConvertSchematic(file, DestFolder, ProjectName, ExtractLibraries);
@@ -300,7 +379,7 @@ namespace EagleConverter
                     result = library.ConvertLibraryFile(file, DestFolder);
             }
 
-            if (bWriteProjectFile)
+            if (IsProject)
                 WriteProjectFile(DestFolder, ProjectName);
 
             Trace("");

@@ -368,7 +368,10 @@ namespace EagleImport
         [XmlAttribute(AttributeName = "package")]
         public string Package { get; set; }
 
-        public Device() { }
+        public Device()
+        {
+            Name = "";
+        }
 
         public Device(string name, string package)
         {
@@ -844,23 +847,41 @@ namespace EagleImport
     [XmlRoot(ElementName = "pad")]
     public class Pad
     {
-		[XmlAttribute(AttributeName="diameter")]
-		public string Diameter { get; set; }
-		[XmlAttribute(AttributeName="drill")]
-		public string Drill { get; set; }
-		[XmlAttribute(AttributeName="name")]
-		public string Name { get; set; }
-		[XmlAttribute(AttributeName="rot")]
+        [XmlAttribute(AttributeName = "name")]
+        public string Name { get; set; }
+        [XmlAttribute(AttributeName = "x")]
+        public string X { get; set; }
+        [XmlAttribute(AttributeName = "y")]
+        public string Y { get; set; }
+        [XmlAttribute(AttributeName = "drill")]
+        public string Drill { get; set; }
+        [XmlAttribute(AttributeName="diameter")]
+        public string Diameter { get; set; }
+        [XmlAttribute(AttributeName = "shape")]
+        public PadShape Shape { get; set; }
+        [XmlAttribute(AttributeName="rot")]
 		public string Rot { get; set; }
-		[XmlAttribute(AttributeName="shape")]
-		public string Shape { get; set; }
-		[XmlAttribute(AttributeName="x")]
-		public string X { get; set; }
-		[XmlAttribute(AttributeName="y")]
-		public string Y { get; set; }
+
+        [XmlAttribute(AttributeName = "stop")]
+        public Bool Stop { get; set; }
+        [XmlAttribute(AttributeName = "thermals")]
+        public Bool Thermals { get; set; }
+        [XmlAttribute(AttributeName = "first")]
+        public Bool First { get; set; }
+
+
+        public Pad ()
+        {
+            Diameter = "0";
+            Shape = PadShape.round;
+            Rot = "R0";
+            Stop = Bool.yes;
+            Thermals = Bool.yes;
+            First = Bool.no;
+        }
     }
 
-	[XmlRoot(ElementName="param")]
+    [XmlRoot(ElementName="param")]
 	public class Param {
 		[XmlAttribute(AttributeName="name")]
 		public string Name { get; set; }
@@ -1026,6 +1047,7 @@ namespace EagleImport
 
         public Polygon()
         {
+            Pour = PolygonPour.solid;
             Orphans = Bool.no;
             Thermals = Bool.yes;
             Rank = "0";
@@ -1174,22 +1196,40 @@ namespace EagleImport
     [XmlRoot(ElementName = "smd")]
     public class Smd
     {
+        [XmlAttribute(AttributeName = "name")]
+        public string Name { get; set; }
+        [XmlAttribute(AttributeName = "x")]
+        public string X { get; set; }
+        [XmlAttribute(AttributeName = "y")]
+        public string Y { get; set; }
         [XmlAttribute(AttributeName = "dx")]
         public string Dx { get; set; }
         [XmlAttribute(AttributeName = "dy")]
         public string Dy { get; set; }
         [XmlAttribute(AttributeName = "layer")]
         public string Layer { get; set; }
-        [XmlAttribute(AttributeName = "name")]
-        public string Name { get; set; }
-        [XmlAttribute(AttributeName = "rot")]
-        public string Rot { get; set; }
         [XmlAttribute(AttributeName = "roundness")]
         public string Roundness { get; set; }
-        [XmlAttribute(AttributeName = "x")]
-        public string X { get; set; }
-        [XmlAttribute(AttributeName = "y")]
-        public string Y { get; set; }
+        [XmlAttribute(AttributeName = "rot")]
+        public string Rot { get; set; }
+
+        [XmlAttribute(AttributeName = "stop")]
+        public Bool Stop { get; set; }
+        [XmlAttribute(AttributeName = "thermals")]
+        public Bool Thermals { get; set; }
+        [XmlAttribute(AttributeName = "cream")]
+        public Bool Cream { get; set; }
+
+
+        public Smd()
+        {
+            Roundness = "0";
+            Rot = "R0";
+            Stop = Bool.yes;
+            Thermals = Bool.yes;
+            Cream = Bool.yes;
+        }
+
     }
 
     [XmlRoot(ElementName = "symbol")]
@@ -1238,13 +1278,17 @@ namespace EagleImport
     {
         [XmlAttribute(AttributeName = "name")]
         public string Name { get; set; }
+
+        [XmlElement(ElementName = "attribute")]
+        public List<Attribute> Attribute { get; set; }
+
     }
 
     [XmlRoot(ElementName = "technologies")]
     public class Technologies
     {
         [XmlElement(ElementName = "technology")]
-        public Technology Technology { get; set; }
+        public List<Technology> Technology { get; set; }
     }
 
     [XmlRoot(ElementName = "text")]
@@ -1334,6 +1378,11 @@ namespace EagleImport
         public string Y { get; set; }
         [XmlAttribute(AttributeName = "curve")]
         public string Curve { get; set; }
+
+        public Vertex()
+        {
+            Curve = "0";
+        }
     }
 
 	[XmlRoot(ElementName="via")]

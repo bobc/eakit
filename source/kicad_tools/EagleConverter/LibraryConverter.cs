@@ -8,6 +8,7 @@ using System.IO;
 
 using Cad2D;
 using EagleImport;
+using EagleConverter.Font;
 using RMC;
 using k = Kicad_utils;
 
@@ -18,6 +19,7 @@ namespace EagleConverter
         ProjectConverter Parent;
 
         DesignRules designRules = new DesignRules();
+        NewStroke strokeFont = new NewStroke(); 
 
         bool debug = false;
 
@@ -49,10 +51,10 @@ namespace EagleConverter
             Parent.Trace(s);
         }
 
-        private k.LayerDescriptor ConvertLayer(string number)
+        private k.LayerDescriptor ConvertLayer(string number, string message)
         {
             //
-            return Parent.ConvertLayer (Layers, number);
+            return Parent.ConvertLayer (Layers, number, message);
         }
 
         private void GetSymbol(Library lib, Deviceset devset, k.Symbol.Symbol k_sym)
@@ -83,6 +85,9 @@ namespace EagleConverter
 
             int gate_index = 0;
 
+            k_sym.ShowPinName = true;
+            k_sym.ShowPinNumber = true;
+
             foreach (Gate gate in devset.Gates.Gate)
             {
                 Symbol sym = lib.Symbols.Symbol.Find(x => x.Name == gate.Symbol);
@@ -92,7 +97,7 @@ namespace EagleConverter
                     return;
                 }
 
-                if (lib.Name.StartsWith("supply"))
+                if ( (lib.Name!=null) && lib.Name.StartsWith("supply"))
                 {
                     k_sym.PowerSymbol = true;
                     k_sym.Reference = "#PWR";
@@ -133,6 +138,18 @@ namespace EagleConverter
                         }
                     }
 
+                    // graphic : circles
+                    foreach (Circle circle in sym.Circle)
+                    {
+                        float width = 1;
+                        if (!string.IsNullOrEmpty(circle.Width))
+                            width = Math.Max(Common.StrToInch(circle.Width), 1);
+
+                        k_sym.Drawings.Add(new k.Symbol.sym_circle(unit, width, k.Symbol.FillTypes.None, 
+                            Common.StrToPointInch(circle.X, circle.Y), 
+                            Common.StrToInch(circle.Radius)));
+                    }
+
                     // graphic : rectangles
                     foreach (EagleImport.Rectangle rect in sym.Rectangle)
                     {
@@ -149,7 +166,9 @@ namespace EagleConverter
                         //ExtRotation extRot = ExtRotation.Parse(text.Rot);
                         k_text.Text.xAngle = Common.GetAngle(text.Rot);
 
-                        k_text.Text.Angle = Common.xGetAngleFlip(text.Rot, out k_text.Text.xMirror);
+                        k_text.Text.Pos.Rotation = Common.xGetAngleFlip(text.Rot, out k_text.Text.xMirror);
+
+                        SizeF textSize = strokeFont.GetTextSize(text.mText, new Kicad_utils.TextEffects(k_text.Text.FontSize));
 
                         string t = text.mText.ToUpperInvariant();
                         if (t.Contains(">NAME") || t.Contains(">PART") ||
@@ -163,13 +182,22 @@ namespace EagleConverter
 
                             sym_text.Text.Pos = k_text.Text.Pos;
                             sym_text.Text.FontSize = k_text.Text.FontSize;
-                            if ((k_text.Text.Angle == 0) || (k_text.Text.Angle == 180))
-                                sym_text.Text.Angle = 0;
+                            if ((k_text.Text.Pos.Rotation == 0) || (k_text.Text.Pos.Rotation == 180))
+                                sym_text.Text.Pos.Rotation = 0;
                             else
-                                sym_text.Text.Angle = 90;
+                                sym_text.Text.Pos.Rotation = 90;
                         }
                         else
                         {
+                            // unless Spin is set?
+                            if (k_text.Text.Pos.Rotation == 180)
+                            {
+                                k_text.Text.Pos.At.X -= textSize.Width;
+                                k_text.Text.Pos.At.Y -= textSize.Height;
+                                k_text.Text.Pos.Rotation = 0;
+                            }
+
+                            //
                             k_sym.Drawings.Add(k_text);
                         }
                     }
@@ -201,23 +229,20 @@ namespace EagleConverter
                         default:
                             k_pin.Length = 300; break;
                     }
+
                     switch (pin.Visible)
                     {
                         case PinVisible.off:
-                            k_sym.ShowPinName = false;
-                            k_sym.ShowPinNumber = false;
+                            k_pin.SizeName = 0;
+                            k_pin.SizeNum = 0;
                             break;
                         case PinVisible.pad:
-                            k_sym.ShowPinName = false;
-                            k_sym.ShowPinNumber = true;
+                            k_pin.SizeName = 0;
                             break;
                         case PinVisible.pin:
-                            k_sym.ShowPinName = true;
-                            k_sym.ShowPinNumber = false;
+                            k_pin.SizeNum = 0;
                             break;
                         case PinVisible.both:
-                            k_sym.ShowPinName = true;
-                            k_sym.ShowPinNumber = true;
                             break;
                     }
 
@@ -274,17 +299,18 @@ namespace EagleConverter
         }
 
 
-        public bool ConvertLibrary (Library lib, List<Layer> layers, string OutputFolder, bool WriteLibFile)
+
+        public bool ConvertLibrary (string LibName, Library lib, List<Layer> layers, string OutputFolder, bool WriteLibFile)
         {
             string lib_filename;
 
-            Trace("Processing Library: " + lib.Name);
+            Trace("Processing Library: " + LibName);
 
             Layers = layers;
 
             // Packages
             k.ModuleDef.LibModule k_footprint_lib = new Kicad_utils.ModuleDef.LibModule();
-            k_footprint_lib.Name = lib.Name;
+            k_footprint_lib.Name = LibName;
 
             foreach (Package package in lib.Packages.Package)
             {
@@ -298,7 +324,7 @@ namespace EagleConverter
 
                 if (package.Description != null)
                     k_module.description = Common.CleanTags(package.Description.Text);
-                k_module.position = new k.ModuleDef.Position(0, 0, 0);
+                k_module.position = new k.Position(0, 0, 0);
 
                 k_module.layer = "F.Cu"; // todo: back ???
 
@@ -311,7 +337,7 @@ namespace EagleConverter
                         k.ModuleDef.fp_line k_line = new Kicad_utils.ModuleDef.fp_line(
                             Common.StrToPointFlip_mm(wire.X1, wire.Y1),
                             Common.StrToPointFlip_mm(wire.X2, wire.Y2),
-                            ConvertLayer(wire.Layer).Name,
+                            ConvertLayer(wire.Layer, package.Name).Name,
                             Common.StrToVal_mm(wire.Width));
                         k_module.Borders.Add(k_line);
                     }
@@ -325,7 +351,7 @@ namespace EagleConverter
                         k.ModuleDef.fp_arc k_arc = new k.ModuleDef.fp_arc(
                             center, start,
                             -curve,
-                            ConvertLayer(wire.Layer).Name,
+                            ConvertLayer(wire.Layer, package.Name).Name,
                             Common.StrToVal_mm(wire.Width));
 
                         k_module.Borders.Add(k_arc);
@@ -335,21 +361,41 @@ namespace EagleConverter
                 foreach (Smd smd in package.Smd)
                 {
                     k.ModuleDef.pad k_pad = new k.ModuleDef.pad(smd.Name, "smd", "rect", Common.StrToPointFlip_mm(smd.X, smd.Y), Common.StrToSize_mm(smd.Dx, smd.Dy), 0);
+
                     if (Common.GetAngle(smd.Rot) % 180 == 90)
                         k_pad.size = Common.StrToSize_mm(smd.Dy, smd.Dx);
-                    k_module.Pads.Add(k_pad);
 
-                    string layer = ConvertLayer(smd.Layer).Name;
+                    if (smd.Stop == Bool.no)
+                    {
+                        k_pad._layers.RemoveLayer("F.Mask");
+                    }
+                    if (smd.Cream == Bool.no)
+                    {
+                        k_pad._layers.RemoveLayer("F.Paste");
+                    }
+
+                    k_module.Pads.Add(k_pad);
                 }
 
                 foreach (Pad pad in package.Pad)
                 {
+                    float pad_size = Common.StrToVal_mm(pad.Diameter);
+                    if (pad_size == 0)
+                        pad_size = designRules.CalcPadSize(Common.StrToVal_mm(pad.Drill));
 
-                    float pad_size = designRules.CalcPadSize(Common.StrToVal_mm(pad.Drill));
                     k.ModuleDef.pad k_pad = new k.ModuleDef.pad(pad.Name, "thru_hole", "circle",
                         Common.StrToPointFlip_mm(pad.X, pad.Y), new SizeF(pad_size, pad_size), Common.StrToVal_mm(pad.Drill));
 
-                    if (pad.Shape == "long")
+                    if (pad.Stop == Bool.no)
+                    {
+                        k_pad._layers.RemoveLayer("F.Mask");
+                        k_pad._layers.RemoveLayer("B.Mask");
+                    }
+
+                    if (pad.Thermals == Bool.no)
+                        k_pad.thermal_gap = 0;
+                    
+                    if (pad.Shape == PadShape.@long)
                     {
                         k_pad.shape = "oval";
                         if (Common.GetAngle(pad.Rot) % 180 == 0)
@@ -364,14 +410,30 @@ namespace EagleConverter
                 {
                     k.ModuleDef.fp_text k_text = new k.ModuleDef.fp_text("ref", text.mText,
                         Common.StrToPointFlip_mm(text.X, text.Y),
-                        ConvertLayer(text.Layer).Name,
+                        ConvertLayer(text.Layer, package.Name).Name,
                         new SizeF(Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
-                        0.12f,
+                        Common.GetTextThickness_mm(text),
                         true);
 
+                    ExtRotation rot = ExtRotation.Parse(text.Rot);
+                    //k_text.RotateBy(rot.Rotation);
+                    k_text.position.Rotation = rot.Rotation;
+
                     // adjust position for center, center alignment
-                    k_text.position.At.Y -= k_text.effects.font.Size.Height / 2;
-                    k_text.position.At.X += k_text.effects.font.Size.Width * k_text.Value.Length * 0.8f / 2;
+
+                    SizeF textSize = strokeFont.GetTextSize(text.mText, k_text.effects);
+
+                    if (rot.Rotation % 180 == 0)
+                    {
+                        k_text.position.At.X += textSize.Width / 2;
+                        k_text.position.At.Y -= textSize.Height / 2;
+                    }
+                    else
+                    {
+                        k_text.position.At.X -= textSize.Height / 2;
+                        k_text.position.At.Y -= textSize.Width / 2;
+                    }
+
 
                     //k_text.effects.horiz_align = k.TextJustify.left;
 
@@ -400,10 +462,13 @@ namespace EagleConverter
 
                 foreach (EagleImport.Rectangle rect in package.Rectangle)
                 {
+                    RectangleF r = Common.ConvertRect_mm(rect.X1, rect.Y1, rect.X2, rect.Y2, rect.Rot);
+                    List<PointF> poly = Common.RectToPoly(r);
+                    
                     k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(
-                        Common.StrToPointFlip_mm(rect.X1, rect.Y1), Common.StrToPointFlip_mm(rect.X2, rect.Y2),
-                        ConvertLayer(rect.Layer).Name,
-                        0.12f
+                        poly,
+                        ConvertLayer(rect.Layer, package.Name).Name,
+                        0.01f   // width?
                         );
                     k_module.Borders.Add(k_poly);
                 }
@@ -413,7 +478,7 @@ namespace EagleConverter
                     k.ModuleDef.fp_circle k_circle = new Kicad_utils.ModuleDef.fp_circle(
                         Common.StrToPointFlip_mm(circle.X, circle.Y),
                         Common.StrToVal_mm(circle.Radius),
-                        ConvertLayer(circle.Layer).Name,
+                        ConvertLayer(circle.Layer, package.Name).Name,
                         Common.StrToVal_mm(circle.Width)
                         );
                     k_module.Borders.Add(k_circle);
@@ -425,8 +490,7 @@ namespace EagleConverter
                         "circle",
                         Common.StrToPointFlip_mm(hole.X, hole.Y),
                         new SizeF(Common.StrToVal_mm(hole.Drill), Common.StrToVal_mm(hole.Drill)),
-                        Common.StrToVal_mm(hole.Drill),
-                        ""
+                        Common.StrToVal_mm(hole.Drill)
                         );
                     k_module.Pads.Add(k_hole);
                 }
@@ -441,7 +505,7 @@ namespace EagleConverter
                         poly_2d.AddVertex(p.X, p.Y);
                     }
 
-                    k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(poly_2d, ConvertLayer(poly.Layer).Name, 0.12f);
+                    k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(poly_2d, ConvertLayer(poly.Layer, package.Name).Name, 0.12f);
                     k_module.Borders.Add(k_poly);
                 }
 
@@ -450,7 +514,7 @@ namespace EagleConverter
 
                 //
                 k.ModuleDef.Module k_generic = k_module.Clone();
-                k_generic.Name = lib.Name + ":" + k_generic.Name;
+                k_generic.Name = LibName + ":" + k_generic.Name;
                 AllFootprints.Add(k_generic);
             }
 
@@ -459,7 +523,7 @@ namespace EagleConverter
                 lib_filename = Path.Combine(OutputFolder);
                 k_footprint_lib.WriteLibrary(lib_filename);
 
-//!                footprintTable.Entries.Add(new Kicad_utils.Project.LibEntry(lib.Name, "KiCad", @"$(KIPRJMOD)\\" + k_footprint_lib.Name + ".pretty", "", ""));
+//!                footprintTable.Entries.Add(new Kicad_utils.Project.LibEntry(LibName, "KiCad", @"$(KIPRJMOD)\\" + k_footprint_lib.Name + ".pretty", "", ""));
             }
 
 
@@ -467,7 +531,7 @@ namespace EagleConverter
             {
                 // Symbols
                 k.Symbol.LibSymbolLegacy kicad_lib = new k.Symbol.LibSymbolLegacy();
-                kicad_lib.Name = lib.Name;
+                kicad_lib.Name = LibName;
                 kicad_lib.Symbols = new List<k.Symbol.Symbol>();
 
                 foreach (Deviceset devset in lib.Devicesets.Deviceset)
@@ -508,6 +572,8 @@ namespace EagleConverter
                     {
                         foreach (Device device in devset.Devices.Device)
                         {
+                            // foreach technology
+
                             string name;
                             if (device.Name == "")
                                 name = devset.Name;
@@ -515,19 +581,20 @@ namespace EagleConverter
                                 name = devset.Name + device.Name;
 
                             k.Symbol.Symbol k_sym_device = k_sym.Clone();
+
                             k_sym_device.Name = name;
                             k_sym_device.fValue.Text.Value = name;
 
                             // place below value
                             PointF pos;
-                            if (k_sym_device.fValue.Text.Angle == 0)
-                                pos = new PointF(k_sym_device.fValue.Text.Pos.X, k_sym_device.fValue.Text.Pos.Y - 100);
+                            if (k_sym_device.fValue.Text.Pos.Rotation == 0)
+                                pos = new PointF(k_sym_device.fValue.Text.Pos.At.X, k_sym_device.fValue.Text.Pos.At.Y - 100);
                             else
-                                pos = new PointF(k_sym_device.fValue.Text.Pos.X + 100, k_sym_device.fValue.Text.Pos.Y);
+                                pos = new PointF(k_sym_device.fValue.Text.Pos.At.X + 100, k_sym_device.fValue.Text.Pos.At.Y);
 
                             k_sym_device.fPcbFootprint = new k.Symbol.SymbolField(kicad_lib.Name + ":" + device.Package,
                                 pos,
-                                50, true, k_sym_device.fValue.Text.Angle == 0 ? "H" : "V",
+                                50, true, k_sym_device.fValue.Text.Pos.Rotation == 0 ? "H" : "V",
                                 "L", "B", false, false);
 
                             Trace(string.Format("debug: device {0} {1}", name, k_sym_device.fPcbFootprint.Text.Value));
@@ -553,21 +620,75 @@ namespace EagleConverter
 
                                     k.Symbol.sym_pin k_pin = k_sym_device.FindPin(unit, Common.ConvertName(connect.Pin));
                                     if (k_pin == null)
-                                        Trace(string.Format("error: pin not found {0} {1}", k_sym_device, connect.Pin));
+                                        Trace(string.Format("error: pin not found {0} {1}", k_sym_device.Name, connect.Pin));
                                     else
                                     {
-                                        //todo: check length
-                                        k_pin.PinNumber = connect.Pad;
+                                        string[] pads;
+                                        pads = connect.Pad.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                        int index = 0;
+                                        foreach (string s in pads)
+                                        {
+                                            // check length
+                                            if (s.Length > 4)
+                                                Trace(string.Format("error: pad name too long {0} {1}", k_sym_device.Name, connect.Pad));
 
-                                        if (k_pin.PinNumber.Length > 4)
-                                            Trace(string.Format("error: pad name too long {0} {1}", k_sym_device.Name, connect.Pad));
+                                            if (index==0)
+                                                k_pin.PinNumber = s;
+                                            else
+                                            {
+                                                k.Symbol.sym_pin k_dup_pin = k.Symbol.sym_pin.Clone(k_pin);
+                                                k_dup_pin.Visible = false;
+                                                k_dup_pin.PinNumber = s;
+                                                k_sym_device.Drawings.Add(k_dup_pin);
+                                            }
+                                            index++;
+                                        }
                                     }
                                 }
                             }
 
-                            kicad_lib.Symbols.Add(k_sym_device);
+                            // k_sym_device
+                            bool first = true;
+                            foreach (Technology tech in device.Technologies.Technology)
+                            {
+                                if (tech.Name == "")
+                                {
+                                    if (device.Name == "")
+                                        name = devset.Name.Replace("*", "");
+                                    else
+                                        name = devset.Name.Replace("*", "") + device.Name;
 
-                            AllDevices.Add(new Device(name, device.Package));
+                                    k_sym_device.Name = name;
+                                    k_sym_device.fValue.Text.Value = name;
+
+                                    kicad_lib.Symbols.Add(k_sym_device);
+                                    AllDevices.Add(new Device(name, device.Package));
+                                }
+                                else
+                                {
+                                    if (first)
+                                    {
+                                        if (device.Name == "")
+                                            name = devset.Name.Replace("*", tech.Name);
+                                        else
+                                            name = devset.Name.Replace("*", tech.Name) + device.Name;
+
+                                        k_sym_device.Name = name;
+                                        k_sym_device.fValue.Text.Value = name;
+
+                                        kicad_lib.Symbols.Add(k_sym_device);
+                                        AllDevices.Add(new Device(name, device.Package));
+                                    }
+                                    else
+                                    {
+                                        // create alias
+                                        k_sym_device.Alias.Add(devset.Name.Replace("*", tech.Name) + device.Name); // ?
+                                    }
+                                }
+
+                                first = false;
+                            }
+
                         }
                     }
                 }
@@ -596,9 +717,11 @@ namespace EagleConverter
             Trace(string.Format("Reading library file {0}", SourceFilename));
             libraryFile = EagleFile.LoadFromXmlFile(SourceFilename);
 
+            string name = Path.GetFileNameWithoutExtension(SourceFilename);
+
             if (libraryFile != null)
             {
-                ConvertLibrary(libraryFile.Drawing.Library, libraryFile.Drawing.Layers.Layer, DestFolder, true);
+                ConvertLibrary(name, libraryFile.Drawing.Library, libraryFile.Drawing.Layers.Layer, DestFolder, true);
 
                 result = true;
             }

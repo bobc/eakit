@@ -29,6 +29,8 @@ namespace EagleConverter
         SizeF PageSize;
         string PageStr;
 
+        NewStroke strokeFont = new NewStroke();
+
         PointF DrawingOffset = new PointF(10.16f, 12.7f);
 
         RenameMap PartMap = new RenameMap();           // All parts from <parts> element, with converted name
@@ -81,7 +83,7 @@ namespace EagleConverter
                 if (lib.Name == "frames")
                     continue;
 
-                libraryConverter.ConvertLibrary(lib, board.Drawing.Layers.Layer, OutputFolder, ExtractLibraries);
+                libraryConverter.ConvertLibrary(lib.Name, lib, board.Drawing.Layers.Layer, OutputFolder, ExtractLibraries);
 
                 //todo: check if any footprints were written
                 footprintTable.Entries.Add(new Kicad_utils.Project.LibEntry(lib.Name, "KiCad", @"$(KIPRJMOD)\\" + lib.Name + ".pretty", "", ""));
@@ -100,7 +102,7 @@ namespace EagleConverter
 
             k.ModuleDef.Module module = new k.ModuleDef.Module();
             module.Name = name;
-            module.layer = k.Layer.GetLayerName (k.Layer.nFront_Cu);
+            module.layer = k.LayerList.StandardLayers.GetLayerName (k.Layer.nFront_Cu);
             module.At = new PointF(0, 0);
             module.Reference = new k.ModuleDef.fp_text("reference", module.Name, new PointF(0, 0), k.Layer.F_SilkS, text_size, 0.1f, false);
             module.Value = new k.ModuleDef.fp_text("value", "~", new PointF(0, 0), k.Layer.F_Fab, text_size, 0.1f, false);
@@ -125,47 +127,67 @@ namespace EagleConverter
             k.ModuleDef.Module result = OnePin(pad_diam, drill_diam, "@V" + vpad_index++, k.ModuleDef.pad.through_hole);
             result.attr = "virtual";
             result.Pads[0].net = net;
-            result.Pads[0].layers = "*.Cu";
+            result.Pads[0]._layers.AddLayer("*.Cu");
             result.Pads[0].zone_connect = 2;
             return result;
-        }
-
-        public float GetTextThickness_mm (Text text)
-        {
-            return Common.StrToVal_mm(text.Size) * int.Parse(text.Ratio) / 100f;
-        }
-
-        public float GetTextThickness_mm(string textSize, string ratio)
-        {
-            return Common.StrToVal_mm(textSize) * int.Parse(ratio) / 100f;
         }
 
         private void SetPcbTextAttributes(k.ModuleDef.fp_text field,
             PointF element_pos, ExtRotation element_rot,
             PointF attrib_pos,  ExtRotation attrib_rot)
         {
-            field.position.At = new PointF (attrib_pos.X - element_pos.X, (attrib_pos.Y - element_pos.Y));
+            float angle;
 
-            float angle = MathUtil.NormalizeAngle(attrib_rot.Rotation - element_rot.Rotation);
+            if (element_rot.Mirror)
+            {
+                field.position.At = new PointF(attrib_pos.X - element_pos.X, (attrib_pos.Y - element_pos.Y));
+                angle = MathUtil.NormalizeAngle(attrib_rot.Rotation - element_rot.Rotation);
+                field.position.At = field.position.At.Rotate(-element_rot.Rotation);
 
-            field.position.At = field.position.At.Rotate(element_rot.Rotation);
+                field.position.At.X = -field.position.At.X;
+            }
+            else
+            {
+                field.position.At = new PointF(attrib_pos.X - element_pos.X, (attrib_pos.Y - element_pos.Y));
+                angle = MathUtil.NormalizeAngle(attrib_rot.Rotation - element_rot.Rotation);
+                field.position.At = field.position.At.Rotate(element_rot.Rotation);
 
-            //field.position.Rotation = angle;
+                //SizeF textSize = strokeFont.GetTextSize(field.Value, field.effects);
+                // get bottom left
+                //PointF pivot = field.position.At + new SizeF (-textSize.Width / 2, textSize.Height / 2);
+                //field.position.At = field.position.At.RotateAt (pivot, angle);
+            }
+
+            field.position.Rotation = angle;
+            AdjustPos(field);
         }
 
 
         private void AdjustPos (k.ModuleDef.fp_text field)
         {
-            PointF offset = new PointF(field.Value.Length * field.effects.font.Size.Width * 0.8f / 2,
-                field.Value.Length * field.effects.font.Size.Height / 2f);
+            SizeF textSize = strokeFont.GetTextSize(field.Value, field.effects);
+            PointF offset = new PointF(textSize.Width / 2,  textSize.Height / 2f);
 
-//            field.position.At = new PointF(field.position.At.X + offset.X, field.position.At.Y + offset.Y);
-
-            switch ((int)field.position.Rotation)
+            switch ((int)field.position.Rotation % 360)
             {
                 case 0:
-                    field.position.At.X += field.Value.Length * field.effects.font.Size.Width * 0.8f / 2;
-                    field.position.At.Y -= field.effects.font.Size.Height / 2f;
+                    field.position.At.X += offset.X;
+                    field.position.At.Y -= offset.Y;
+                    break;
+
+                case 90:
+                    field.position.At.X -= offset.Y;
+                    field.position.At.Y -= offset.X;
+                    break;
+
+                case 180:
+                    field.position.At.X -= offset.X;
+                    field.position.At.Y += offset.Y;
+                    break;
+
+                case 270:
+                    field.position.At.X += offset.Y;
+                    field.position.At.Y += offset.X;
                     break;
             }
         }
@@ -226,8 +248,8 @@ namespace EagleConverter
             DesignRules designRules = new DesignRules();
             PartMap = new RenameMap();
 
-            Trace(string.Format("Reading board file {0}", Path.ChangeExtension(SourceFilename,".brd")));
-            board = EagleFile.LoadFromXmlFile(Path.ChangeExtension(SourceFilename,".brd"));
+            Trace(string.Format("Reading board file {0}", SourceFilename));
+            board = EagleFile.LoadFromXmlFile(SourceFilename);
 
             //
             if (board != null)
@@ -295,32 +317,59 @@ namespace EagleConverter
                         StrToPoint_Board(text.X, text.Y),
                         layer,
                         new SizeF (Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
-                        GetTextThickness_mm (text),
+                        Common.GetTextThickness_mm (text),
                         angle
                         );
-                    k_text.horiz_align = k.TextJustify.left;
+                    k_text.effects.horiz_align = k.TextJustify.left;
+
+                    SizeF textSize = strokeFont.GetTextSize(text.mText, k_text.effects);
+                    PointF offset = new PointF(textSize.Width / 2, textSize.Height / 2);
+
+                    // TODO: spin
 
                     switch ((int)ExtRotation.Parse (text.Rot).Rotation)
                     {
-                        case 0: break;
+                        case 0:
+                            if (mirror)
+                            {
+                                k_text.Position.At.Y -= offset.Y;
+                            }
+                            else
+                            {
+                                k_text.Position.At.Y -= offset.Y;
+                            }
+                            break;
                         case 90:
                             if (mirror)
                             {
-                                k_text.at.X += (int)(k_text.font.Size.Width * 1.5f);
-                                k_text.at.Y -= (int)(k_text.Value.Length * k_text.font.Size.Height * 1.5f);
+                                k_text.Position.At.X += offset.Y;
+                                k_text.Position.At.Y -= textSize.Width;
+                            }
+                            else
+                            {
+                                k_text.Position.At.X -= offset.Y;
                             }
                             break;
                         case 180:
-                            k_text.at.Y += (int)(k_text.font.Size.Height * 1.5f);
+                            if (mirror)
+                            {
+                                k_text.Position.At.Y += offset.Y;
+                            }
+                            else
+                            {
+                                k_text.Position.At.Y += textSize.Height;
+                            }
                             break;
                         case 270:
                             if (mirror)
                             {
-                                //k_text.Pos.X += (int)(k_text.TextSize * 1.5f);
-                                k_text.at.Y += (int)(k_text.Value.Length * k_text.font.Size.Height * 1.7f);
+                                k_text.Position.At.X -= offset.Y;
+                                k_text.Position.At.Y += textSize.Width;
                             }
                             else
-                                k_text.at.X += (int)(k_text.font.Size.Width * 1.5f);
+                            {
+                                k_text.Position.At.X += offset.Y;
+                            }
                             break;
                     }
 
@@ -404,7 +453,7 @@ namespace EagleConverter
                     PointF p3 = StrToPoint_Board(dim.X3, dim.Y3);
                     float line_width = 0.15f; // default width? 
                     float text_size = Common.StrToVal_mm(dim.TextSize);
-                    float text_width = GetTextThickness_mm(dim.TextSize, dim.TextRatio);
+                    float text_width = Common.GetTextThickness_mm(dim.TextSize, dim.TextRatio);
 
                     if (!string.IsNullOrEmpty(dim.Width))
                         line_width = Common.StrToVal_mm(dim.Width);
@@ -435,9 +484,9 @@ namespace EagleConverter
                         k.Pcb.Zone zone = new k.Pcb.Zone();
 
                         if (poly.Layer == "41")
-                            zone.layer = k.Layer.GetLayerName(k.Layer.nFront_Cu);
+                            zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nFront_Cu);
                         else if (poly.Layer == "42")
-                            zone.layer = k.Layer.GetLayerName(k.Layer.nBack_Cu);
+                            zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nBack_Cu);
 
                         zone.net = 0;
                         zone.net_name = "";
@@ -524,16 +573,16 @@ namespace EagleConverter
                             size = designRules.CalcViaSize(drill);
 
                         k.Pcb.Via k_via = new k.Pcb.Via(pos, size, drill,
-                            k.Layer.GetLayerName(k.Layer.nFront_Cu),
-                            k.Layer.GetLayerName(k.Layer.nBack_Cu), 
+                            k.LayerList.StandardLayers.GetLayerName(k.Layer.nFront_Cu),
+                            k.LayerList.StandardLayers.GetLayerName(k.Layer.nBack_Cu), 
                             k_net.Number);
 
                         PinConnection p_conn = Contacts.Find(x => x.position.X == k_via.at.X && x.position.Y == k_via.at.Y);
 
                         if (via.Extent == "1-16")
                         {
-                            k_via.topmost_layer = k.Layer.GetLayerName(k.Layer.nFront_Cu);
-                            k_via.backmost_layer = k.Layer.GetLayerName(k.Layer.nBack_Cu);
+                            k_via.topmost_layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nFront_Cu);
+                            k_via.backmost_layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nBack_Cu);
                         }
                         else
                             Trace(string.Format("error : blind/buried via ? {0},{1} {2} {3}", via.X, via.Y, signal.Name, via.Extent));
@@ -577,9 +626,9 @@ namespace EagleConverter
                             k.Pcb.Zone zone = new k.Pcb.Zone();
 
                             if (poly.Layer == "41")
-                                zone.layer = k.Layer.GetLayerName(k.Layer.nFront_Cu);
+                                zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nFront_Cu);
                             else if (poly.Layer == "42")
-                                zone.layer = k.Layer.GetLayerName(k.Layer.nBack_Cu);
+                                zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nBack_Cu);
                             else
                                 zone.layer = layer.Name;
 
@@ -655,10 +704,10 @@ namespace EagleConverter
                         k_mod.Reference.Value = PartMap.GetNewName(element.Name);
                         k_mod.At = StrToPoint_Board(element.X, element.Y);
 
-                        if (!string.IsNullOrEmpty(element.Value) && (k_mod.Value!= null))
+                        if (k_mod.Value!= null)
                             k_mod.Value.Value = element.Value;
 
-                        k_mod.layer = k.Layer.GetLayerName (k.Layer.nFront_Cu);
+                        k_mod.layer = k.LayerList.StandardLayers.GetLayerName (k.Layer.nFront_Cu);
 
                         // Set position, orientation
                         ExtRotation elementRot = ExtRotation.Parse (element.Rot);
@@ -705,54 +754,78 @@ namespace EagleConverter
                                     StrToPoint_Board(element.X, element.Y), elementRot,
                                     StrToPoint_Board(attrib.X, attrib.Y), attrRot);
 
-                                AdjustPos(field);
+                          //      AdjustPos(field);
 
                                 //debug
                                 if (pcb_debug)
                                 {
-                                    NewStroke stroke = new NewStroke();
-                                    PointF ptext = field.position.At;
-                                    SizeF textSize = stroke.GetTextSize(field.Value, field.effects);
-                                    ptext.X -= textSize.Width / 2;
-                                    ptext.Y += textSize.Height / 2;
+                                    PointF ptext = new PointF(field.position.At.X, field.position.At.Y);
+                                    SizeF textSize = strokeFont.GetTextSize(field.Value, field.effects);
 
-                                    ptext = k_mod.position.At.Add(ptext.Rotate(-elementRot.Rotation));
+                                    if (elementRot.Mirror)
+                                    {
+                                        // get bottom right
+                                        ptext.X += textSize.Width / 2;
+                                        ptext.Y += textSize.Height / 2;
 
-                                    DrawRect(k_pcb, ptext, textSize, -(elementRot.Rotation + field.position.Rotation));
+                                        ptext = ptext.Rotate(-elementRot.Rotation - 180);
+                                        ptext.Y = -ptext.Y;
+                                    }
+                                    else
+                                    {
+                                        // get bottom left
+                                        ptext.X -= textSize.Width / 2;
+                                        ptext.Y += textSize.Height / 2;
+                                        ptext = ptext.Rotate(-elementRot.Rotation);
+                                    }
 
-                                    PointF p = field.position.At;
+
+                                    ptext = k_mod.position.At.Add(ptext);
+
+                                    //!DrawRect(k_pcb, ptext, textSize, -(elementRot.Rotation + field.position.Rotation));
+
+                                    // 
+                                    PointF p1 = new PointF(field.position.At.X, field.position.At.Y);
                                     k.Pcb.gr_line k_line;
                                     float ds = 1.27f;
-                                    PointF p1 = p.Rotate(-elementRot.Rotation);
+
+                                    if (elementRot.Mirror)
+                                    {
+                                        p1 = p1.Rotate(-elementRot.Rotation-180);
+                                        p1.Y = -p1.Y;
+                                    }
+                                    else
+                                        p1 = p1.Rotate(-elementRot.Rotation);
+
+                                    //p1 = p1.Rotate(field.position.Rotation);
+                                    //p1 = p1.Rotate(k_mod.position.Rotation);
+
 
                                     k_line = new k.Pcb.gr_line(
                                         new PointF(k_mod.position.At.X + p1.X - ds, k_mod.position.At.Y + p1.Y),
-                                        new PointF(k_mod.position.At.X + p1.X + ds, k_mod.position.At.Y + p1.Y), "Dwgs.User", 0.1f);
+                                        new PointF(k_mod.position.At.X + p1.X + ds, k_mod.position.At.Y + p1.Y), "Dwgs.User", 0.01f);
                                     k_pcb.Drawings.Add(k_line);
 
                                     k_line = new k.Pcb.gr_line(
                                         new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y - ds),
-                                        new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y + ds), "Dwgs.User", 0.1f);
+                                        new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y + ds), "Dwgs.User", 0.01f);
                                     k_pcb.Drawings.Add(k_line);
                                 }
                             }
                         }
 
-                        // Note: the Eagle "mirror" attributes reverse side and flips about Y axis, but
-                        // Kicad "flip" reverses side and flips about X axis.
-                        // therefore mirror is equivalent to flip + rotate(180)
+                        // Note: the Eagle "mirror" attribute reverses side and flips about Y | axis, but
+                        // Kicad "flip" reverses side and flips about X -- axis.
+                        // therefore Eagle mirror is equivalent to Kicad flip + rotate(180)
 
-                        if (!string.IsNullOrEmpty(element.Rot))
+                        if (elementRot.Mirror)
                         {
-                            if (elementRot.Mirror)
-                            {
-                                k_mod.RotateBy(MathUtil.NormalizeAngle(-(element_angle + 180)));
-                                k_mod.FlipX(k_mod.position.At);
-                            }
-                            else
-                            {
-                                k_mod.RotateBy(element_angle);
-                            }
+                            k_mod.RotateBy(MathUtil.NormalizeAngle(-(element_angle + 180)));
+                            k_mod.FlipX(k_mod.position.At);
+                        }
+                        else //if (element_angle != 0)
+                        {
+                            k_mod.RotateBy(element_angle);
                         }
 
 
@@ -835,8 +908,6 @@ namespace EagleConverter
                 result = false;
 
                 Trace(string.Format("error opening {0}", SourceFilename));
-                Trace("");
-                Trace("Terminated due to error");
             }
 
             return result;

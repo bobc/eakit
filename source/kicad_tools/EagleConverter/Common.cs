@@ -64,6 +64,41 @@ namespace EagleConverter
         }
 
 
+        public static RectangleF ConvertRect_mm(string x1, string y1, string x2, string y2, string rot)
+        {
+            PointF p1 = StrToPoint_mm(x1, y1);
+            PointF p2 = StrToPoint_mm(x2, y2);
+                        ExtRotation rotation = ExtRotation.Parse(rot);
+
+            PointF mid = new PointF((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+
+            p1 = p1.RotateAt(mid, rotation.Rotation);
+            p2 = p2.RotateAt(mid, rotation.Rotation);
+
+            p1 = p1.FlipX();
+            p2 = p2.FlipX();
+
+            RectangleF rect = new RectangleF(
+                Math.Min(p1.X, p2.X), Math.Min(p1.Y, p2.Y),
+                Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y));
+
+            return rect;
+        }
+
+        public static List<PointF> RectToPoly (RectangleF rect)
+        {
+            List<PointF> result = new List<PointF>();
+            result.Add(new PointF(rect.X, rect.Y));
+            result.Add(new PointF(rect.X + rect.Width, rect.Y));
+            result.Add(new PointF(rect.X + rect.Width, rect.Y + rect.Height));
+            result.Add(new PointF(rect.X, rect.Y + rect.Height));
+
+            return result;
+        }
+
+
+
+
         //
         public static int xGetAngleFlip(string rot, out bool mirror)
         {
@@ -130,6 +165,7 @@ namespace EagleConverter
                 // Replace \ and / with underscore (_)
                 s = s.Replace("/", "_");
                 s = s.Replace(@"\", "_");
+                s = s.Replace(":", "_");
             }
             return s;
         }
@@ -181,6 +217,17 @@ namespace EagleConverter
             int result = (int)ExtRotation.Parse(rot).Rotation;
             return result;
         }
+
+        public static float GetTextThickness_mm(Text text)
+        {
+            return StrToVal_mm(text.Size) * int.Parse(text.Ratio) / 100f;
+        }
+
+        public static float GetTextThickness_mm(string textSize, string ratio = "8")
+        {
+            return StrToVal_mm(textSize) * int.Parse(ratio) / 100f;
+        }
+
 
     }
 }
