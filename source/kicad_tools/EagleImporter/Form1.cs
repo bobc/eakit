@@ -41,7 +41,7 @@ namespace EagleImporter
 
             this.Text = AppCaption + " v" + version;
 
-            comboBoxKicadVersion.Items.Add("4.0.x");
+            comboBoxKicadVersion.Items.Add("4.0.0");
             comboBoxKicadVersion.SelectedIndex = 0;
         }
 
@@ -72,8 +72,9 @@ namespace EagleImporter
         {
             openFileDialog1.Filter = "Eagle Schematic|*.sch";
             openFileDialog1.Filter += "|Eagle PCB|*.brd";
-            openFileDialog1.Filter += "|All Files|*.sch;*.brd";
-            openFileDialog1.FilterIndex = 1;
+            openFileDialog1.Filter += "|Eagle Library|*.lbr";
+            openFileDialog1.Filter += "|All Files|*.sch;*.brd;*.lbr";
+            openFileDialog1.FilterIndex = 4;
             openFileDialog1.FileName = textBoxSource.Text;
 
             if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
