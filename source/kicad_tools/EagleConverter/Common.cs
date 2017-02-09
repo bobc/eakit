@@ -64,7 +64,7 @@ namespace EagleConverter
             return result;
         }
 
-        public static float StrToInt(string s, int  _default = 0)
+        public static int StrToInt(string s, int  _default = 0)
         {
             int result;
             if (!int.TryParse(s, out result))
@@ -339,39 +339,49 @@ namespace EagleConverter
             return offset;
         }
 
+
+        // NB this is for footprint texts
+        // pos is in KiCad coord space
+        // result is in KiCad coord space
+        // side-effect : rot.Rotation is set to KiCad text angle
         public static PointF GetTextPos(PointF pos, SizeF textSize, ExtRotation rot, Align align_from, Align align_to)
         {
-            PointF p1 = pos;
+            PointF result;
             PointF offset;
 
-            offset = GetOffset(align_from, textSize);
+            PointF from_offset = GetOffset(align_from, textSize);
+            PointF to_offset = GetOffset(align_to, textSize);
+
             if (rot.Mirror)
             {
+                offset = new PointF(from_offset.X - to_offset.X, from_offset.Y - to_offset.Y);
+
                 if ((rot.Rotation >= 90) && (rot.Rotation < 270))
                 {
-                    offset = new PointF(offset.X - textSize.Width, offset.Y - textSize.Height);
+                    offset = new PointF(from_offset.X - textSize.Width + to_offset.X, from_offset.Y - textSize.Height + to_offset.Y);
                 }
+
                 offset = offset.Rotate(-FlipAngleY(rot.Rotation));
-                p1 = new PointF(pos.X - offset.X, pos.Y - offset.Y);
+                result = new PointF(pos.X - offset.X, pos.Y - offset.Y);
 
                 rot.Rotation = FlipAngleY(rot.Rotation);
             }
             else
             {
+                offset = new PointF(from_offset.X - to_offset.X, from_offset.Y - to_offset.Y);
+
                 // ************** this works don't change it! **************
                 if ((rot.Rotation > 90) && (rot.Rotation <= 270))
                 {
-                    offset = new PointF(offset.X - textSize.Width, offset.Y - textSize.Height);
+                    offset = new PointF(from_offset.X - textSize.Width + to_offset.X, from_offset.Y - textSize.Height + to_offset.Y);
                 }
-                p1 = new PointF(pos.X - offset.X, pos.Y + offset.Y);
-                p1 = p1.RotateAt(pos, -rot.Rotation);
+
+                result = new PointF(pos.X - offset.X, pos.Y + offset.Y);
+                result = result.RotateAt(pos, -rot.Rotation);
                 // ************** this works don't change it! **************
             }
 
-            // result = p1;
-            // TODO: align_to 
-
-            return p1;
+            return result;
         }
 
     }
