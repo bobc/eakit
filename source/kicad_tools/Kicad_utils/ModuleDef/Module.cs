@@ -86,7 +86,10 @@ namespace Kicad_utils.ModuleDef
 
         public void SaveToFile(string filename)
         {
-            filename = Path.ChangeExtension(filename, "kicad_mod");
+            //filename = Path.ChangeExtension(filename, "kicad_mod");
+
+            if (!filename.EndsWith(".kicad_mod"))
+                filename = filename + ".kicad_mod";
 
             SExpression RootNode = GetSExpression(false);
 
