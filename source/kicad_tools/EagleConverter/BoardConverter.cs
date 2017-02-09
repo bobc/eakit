@@ -247,6 +247,7 @@ namespace EagleConverter
             int net_index = 1;
             DesignRules designRules = new DesignRules();
             PartMap = new RenameMap();
+            k.LayerDescriptor layer;
 
             Trace(string.Format("Reading board file {0}", SourceFilename));
             board = EagleFile.LoadFromXmlFile(SourceFilename);
@@ -310,88 +311,94 @@ namespace EagleConverter
                 {
                     bool mirror;
                     int angle = Common.xGetAngleFlip(text.Rot, out mirror);
-                    string layer = ConvertLayer(text.Layer).Name;
 
-                    k.Pcb.gr_text k_text = new k.Pcb.gr_text (
+                    layer = ConvertLayer(text.Layer);
+                    if (layer != null)
+                    {
+                        k.Pcb.gr_text k_text = new k.Pcb.gr_text(
                         text.mText,
                         StrToPoint_Board(text.X, text.Y),
-                        layer,
-                        new SizeF (Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
-                        Common.GetTextThickness_mm (text),
+                        layer.Name,
+                        new SizeF(Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
+                        Common.GetTextThickness_mm(text),
                         angle
                         );
-                    k_text.effects.horiz_align = k.TextJustify.left;
+                        k_text.effects.horiz_align = k.TextJustify.left;
 
-                    SizeF textSize = strokeFont.GetTextSize(text.mText, k_text.effects);
-                    PointF offset = new PointF(textSize.Width / 2, textSize.Height / 2);
+                        SizeF textSize = strokeFont.GetTextSize(text.mText, k_text.effects);
+                        PointF offset = new PointF(textSize.Width / 2, textSize.Height / 2);
 
-                    // TODO: spin
+                        // TODO: spin
 
-                    switch ((int)ExtRotation.Parse (text.Rot).Rotation)
-                    {
-                        case 0:
-                            if (mirror)
-                            {
-                                k_text.Position.At.Y -= offset.Y;
-                            }
-                            else
-                            {
-                                k_text.Position.At.Y -= offset.Y;
-                            }
-                            break;
-                        case 90:
-                            if (mirror)
-                            {
-                                k_text.Position.At.X += offset.Y;
-                                k_text.Position.At.Y -= textSize.Width;
-                            }
-                            else
-                            {
-                                k_text.Position.At.X -= offset.Y;
-                            }
-                            break;
-                        case 180:
-                            if (mirror)
-                            {
-                                k_text.Position.At.Y += offset.Y;
-                            }
-                            else
-                            {
-                                k_text.Position.At.Y += textSize.Height;
-                            }
-                            break;
-                        case 270:
-                            if (mirror)
-                            {
-                                k_text.Position.At.X -= offset.Y;
-                                k_text.Position.At.Y += textSize.Width;
-                            }
-                            else
-                            {
-                                k_text.Position.At.X += offset.Y;
-                            }
-                            break;
+                        switch ((int)ExtRotation.Parse(text.Rot).Rotation)
+                        {
+                            case 0:
+                                if (mirror)
+                                {
+                                    k_text.Position.At.Y -= offset.Y;
+                                }
+                                else
+                                {
+                                    k_text.Position.At.Y -= offset.Y;
+                                }
+                                break;
+                            case 90:
+                                if (mirror)
+                                {
+                                    k_text.Position.At.X += offset.Y;
+                                    k_text.Position.At.Y -= textSize.Width;
+                                }
+                                else
+                                {
+                                    k_text.Position.At.X -= offset.Y;
+                                }
+                                break;
+                            case 180:
+                                if (mirror)
+                                {
+                                    k_text.Position.At.Y += offset.Y;
+                                }
+                                else
+                                {
+                                    k_text.Position.At.Y += textSize.Height;
+                                }
+                                break;
+                            case 270:
+                                if (mirror)
+                                {
+                                    k_text.Position.At.X -= offset.Y;
+                                    k_text.Position.At.Y += textSize.Width;
+                                }
+                                else
+                                {
+                                    k_text.Position.At.X += offset.Y;
+                                }
+                                break;
+                        }
+
+                        k_pcb.Drawings.Add(k_text);
                     }
-
-                    k_pcb.Drawings.Add(k_text);
                 }
                 #endregion
 
                 #region ==== Plain - lines ====
                 foreach (Wire wire in board.Drawing.Board.Plain.Wire)
                 {
-                    float width = Common.StrToVal_mm(wire.Width);
-                    string layer = ConvertLayer(wire.Layer).Name;
+                    layer = ConvertLayer(wire.Layer);
+                    if (layer != null)
+                    {
+                        float width = Common.StrToVal_mm(wire.Width);
 
-                    //todo: arcs
+                        //todo: arcs
 
-                    k.Pcb.gr_line k_line = new k.Pcb.gr_line (
-                        StrToPoint_Board(wire.X1, wire.Y1), StrToPoint_Board(wire.X2, wire.Y2),
-                        layer,
-                        width
-                        );
+                        k.Pcb.gr_line k_line = new k.Pcb.gr_line(
+                            StrToPoint_Board(wire.X1, wire.Y1), StrToPoint_Board(wire.X2, wire.Y2),
+                            layer.Name,
+                            width
+                            );
 
-                    k_pcb.Drawings.Add(k_line);
+                        k_pcb.Drawings.Add(k_line);
+                    }
                 }
                 #endregion
 
@@ -399,38 +406,41 @@ namespace EagleConverter
                 // convert to unconnected zones
                 foreach (EagleImport.Rectangle rect in board.Drawing.Board.Plain.Rectangle)
                 {
-                    k.LayerDescriptor layer = ConvertLayer(rect.Layer);
-                    PointF p1 = StrToPoint_Board(rect.X1, rect.Y1);
-                    PointF p2 = StrToPoint_Board(rect.X2, rect.Y2);
+                    layer = ConvertLayer(rect.Layer);
+                    if (layer != null)
+                    {
+                        PointF p1 = StrToPoint_Board(rect.X1, rect.Y1);
+                        PointF p2 = StrToPoint_Board(rect.X2, rect.Y2);
 
-                    k.Pcb.Zone zone = new k.Pcb.Zone();
-                    zone.layer = layer.Name;
-                    zone.net = 0;
-                    zone.net_name = "";
-                    zone.hatch_pitch = 0.508f;
-                    zone.connect_pads_clearance = 0.508f;
-                    zone.min_thickness = 0.001f;
-                    zone.is_filled = false;
-                    zone.fill_arc_segments = 16;
-                    zone.fill_thermal_gap = 0.508f;
-                    zone.fill_thermal_bridge_width = 0.508f;
+                        k.Pcb.Zone zone = new k.Pcb.Zone();
+                        zone.layer = layer.Name;
+                        zone.net = 0;
+                        zone.net_name = "";
+                        zone.hatch_pitch = 0.508f;
+                        zone.connect_pads_clearance = 0.508f;
+                        zone.min_thickness = 0.001f;
+                        zone.is_filled = false;
+                        zone.fill_arc_segments = 16;
+                        zone.fill_thermal_gap = 0.508f;
+                        zone.fill_thermal_bridge_width = 0.508f;
 
-                    zone.polygon.Add(new PointF(p1.X, p1.Y));
-                    zone.polygon.Add(new PointF(p2.X, p1.Y));
-                    zone.polygon.Add(new PointF(p2.X, p2.Y));
-                    zone.polygon.Add(new PointF(p1.X, p2.Y));
-                    k_pcb.Zones.Add(zone);
+                        zone.polygon.Add(new PointF(p1.X, p1.Y));
+                        zone.polygon.Add(new PointF(p2.X, p1.Y));
+                        zone.polygon.Add(new PointF(p2.X, p2.Y));
+                        zone.polygon.Add(new PointF(p1.X, p2.Y));
+                        k_pcb.Zones.Add(zone);
 
-                    // todo : not needed?
-                    //k.Pcb.gr_line k_line;
-                    //k_line = new k.Pcb.gr_line(new PointF(p1.X, p1.Y), new PointF(p2.X, p1.Y), layer.Name, width);
-                    //k_pcb.Drawings.Add(k_line);
-                    //k_line = new k.Pcb.gr_line(new PointF(p2.X, p1.Y), new PointF(p2.X, p2.Y), layer.Name, width);
-                    //k_pcb.Drawings.Add(k_line);
-                    //k_line = new k.Pcb.gr_line(new PointF(p1.X, p2.Y), new PointF(p2.X, p2.Y), layer.Name, width);
-                    //k_pcb.Drawings.Add(k_line);
-                    //k_line = new k.Pcb.gr_line(new PointF(p1.X, p1.Y), new PointF(p1.X, p2.Y), layer.Name, width);
-                    //k_pcb.Drawings.Add(k_line);
+                        // todo : not needed?
+                        //k.Pcb.gr_line k_line;
+                        //k_line = new k.Pcb.gr_line(new PointF(p1.X, p1.Y), new PointF(p2.X, p1.Y), layer.Name, width);
+                        //k_pcb.Drawings.Add(k_line);
+                        //k_line = new k.Pcb.gr_line(new PointF(p2.X, p1.Y), new PointF(p2.X, p2.Y), layer.Name, width);
+                        //k_pcb.Drawings.Add(k_line);
+                        //k_line = new k.Pcb.gr_line(new PointF(p1.X, p2.Y), new PointF(p2.X, p2.Y), layer.Name, width);
+                        //k_pcb.Drawings.Add(k_line);
+                        //k_line = new k.Pcb.gr_line(new PointF(p1.X, p1.Y), new PointF(p1.X, p2.Y), layer.Name, width);
+                        //k_pcb.Drawings.Add(k_line);
+                    }
                 }
                 #endregion
 
@@ -447,29 +457,31 @@ namespace EagleConverter
                 #region ==== plain.dimension ====
                 foreach (Dimension dim in board.Drawing.Board.Plain.Dimension)
                 {
-                    k.LayerDescriptor layer = ConvertLayer(dim.Layer);
-                    PointF p1 = StrToPoint_Board(dim.X1, dim.Y1);
-                    PointF p2 = StrToPoint_Board(dim.X2, dim.Y2);
-                    PointF p3 = StrToPoint_Board(dim.X3, dim.Y3);
-                    float line_width = 0.15f; // default width? 
-                    float text_size = Common.StrToVal_mm(dim.TextSize);
-                    float text_width = Common.GetTextThickness_mm(dim.TextSize, dim.TextRatio);
-
-                    if (!string.IsNullOrEmpty(dim.Width))
-                        line_width = Common.StrToVal_mm(dim.Width);
-
-                    switch (dim.Dtype)
+                    layer = ConvertLayer(dim.Layer);
+                    if (layer != null)
                     {
-                        case DimensionType.parallel:
-                        case DimensionType.radius:
-                        case DimensionType.diameter:
-                            k.Pcb.Dimension k_dim = new k.Pcb.Dimension(layer.Name, line_width, p1, p2, text_size, text_width,
-                                dim.Unit == GridUnit.mm, int.Parse(dim.Precision), dim.Visible == Bool.yes);
-                            k_pcb.Dimensions.Add(k_dim);
-                            break;
-                        //todo : others?
+                        PointF p1 = StrToPoint_Board(dim.X1, dim.Y1);
+                        PointF p2 = StrToPoint_Board(dim.X2, dim.Y2);
+                        PointF p3 = StrToPoint_Board(dim.X3, dim.Y3);
+                        float line_width = 0.15f; // default width? 
+                        float text_size = Common.StrToVal_mm(dim.TextSize);
+                        float text_width = Common.GetTextThickness_mm(dim.TextSize, dim.TextRatio);
+
+                        if (!string.IsNullOrEmpty(dim.Width))
+                            line_width = Common.StrToVal_mm(dim.Width);
+
+                        switch (dim.Dtype)
+                        {
+                            case DimensionType.parallel:
+                            case DimensionType.radius:
+                            case DimensionType.diameter:
+                                k.Pcb.Dimension k_dim = new k.Pcb.Dimension(layer.Name, line_width, p1, p2, text_size, text_width,
+                                    dim.Unit == GridUnit.mm, int.Parse(dim.Precision), dim.Visible == Bool.yes);
+                                k_pcb.Dimensions.Add(k_dim);
+                                break;
+                                //todo : others?
+                        }
                     }
-                    
                 }
                 #endregion
 
@@ -533,26 +545,29 @@ namespace EagleConverter
 
                     foreach (Wire wire in signal.Wire)
                     {
-                        // todo: segment must be on a copper layer?
-                        // ignore unrouted
-                        if (wire.Layer != "19")
+                        layer = ConvertLayer(wire.Layer);
+                        if (layer != null)
                         {
-                            float width = Common.StrToVal_mm(wire.Width);
-                            string layer = ConvertLayer(wire.Layer).Name;
-                            //todo: arcs?
+                            // todo: segment must be on a copper layer?
+                            // ignore unrouted
+                            if (wire.Layer != "19")
+                            {
+                                float width = Common.StrToVal_mm(wire.Width);
+                                //todo: arcs?
 
-                            k.Pcb.PcbSegment seg = new Kicad_utils.Pcb.PcbSegment();
+                                k.Pcb.PcbSegment seg = new Kicad_utils.Pcb.PcbSegment();
 
-                            seg.layer = layer;
-                            seg.net = k_net.Number;
-                            seg.start = StrToPoint_Board(wire.X1, wire.Y1);
-                            seg.end = StrToPoint_Board(wire.X2, wire.Y2);
-                            seg.width = width;
+                                seg.layer = layer.Name;
+                                seg.net = k_net.Number;
+                                seg.start = StrToPoint_Board(wire.X1, wire.Y1);
+                                seg.end = StrToPoint_Board(wire.X2, wire.Y2);
+                                seg.width = width;
 
-                            k_pcb.Segments.Add(seg);
+                                k_pcb.Segments.Add(seg);
 
-                            Contacts.Add(new PinConnection(signal.Name, seg.start, layer, null, null));
-                            Contacts.Add(new PinConnection(signal.Name, seg.end, layer, null, null));
+                                Contacts.Add(new PinConnection(signal.Name, seg.start, layer.Name, null, null));
+                                Contacts.Add(new PinConnection(signal.Name, seg.end, layer.Name, null, null));
+                            }
                         }
                     }
 
@@ -608,72 +623,74 @@ namespace EagleConverter
                         float spacing = 0.1524f;
                         int rank = int.Parse(poly.Rank);
 
-                        k.LayerDescriptor layer = ConvertLayer(poly.Layer);
-
-                        //todo: clearances etc should come from DesignRules?
-
-                        if (!string.IsNullOrEmpty(poly.Width))
-                            width = Common.StrToVal_mm(poly.Width);
-
-                        if (!string.IsNullOrEmpty(poly.Isolate))
-                            isolate = Common.StrToVal_mm(poly.Isolate);
-
-                        if (!string.IsNullOrEmpty(poly.Spacing))
-                            spacing = Common.StrToVal_mm(poly.Spacing);
-
-                        if (k.Layer.IsCopperLayer(layer.Number) || (poly.Layer == "41") || (poly.Layer == "42") )
+                        layer = ConvertLayer(poly.Layer);
+                        if (layer != null)
                         {
-                            k.Pcb.Zone zone = new k.Pcb.Zone();
+                            //todo: clearances etc should come from DesignRules?
 
-                            if (poly.Layer == "41")
-                                zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nFront_Cu);
-                            else if (poly.Layer == "42")
-                                zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nBack_Cu);
-                            else
-                                zone.layer = layer.Name;
-
-                            zone.net = k_net.Number;
-                            zone.net_name = k_net.Name;
-                            zone.outline_style = k.Pcb.ZoneOutlineStyle.edge;
-                            zone.hatch_pitch = 0.508f;
-                            zone.connect_pads_clearance = 0.2032f;
-                            zone.min_thickness = width; // ??
-                            zone.fill_arc_segments = 32;
-                            zone.fill_thermal_gap = 0.2032f;
-                            zone.fill_thermal_bridge_width = 0.2032f;
-                            zone.is_filled = false;
-
-                            foreach (Vertex v in poly.Vertex)
-                            {
-                                zone.polygon.Add(StrToPoint_Board(v.X, v.Y));
-                            }
-
-                            if ( (poly.Pour == PolygonPour.cutout) ||
-                                !k.Layer.IsCopperLayer(layer.Number) )
-                            {
-                                zone.is_keepout = true;
-                                zone.outline_style = k.Pcb.ZoneOutlineStyle.none;
-                                zone.keepout_allow_copper_pour = Kicad_utils.Allowed.not_allowed; 
-                            }
+                            if (!string.IsNullOrEmpty(poly.Width))
+                                width = Common.StrToVal_mm(poly.Width);
 
                             if (!string.IsNullOrEmpty(poly.Isolate))
+                                isolate = Common.StrToVal_mm(poly.Isolate);
+
+                            if (!string.IsNullOrEmpty(poly.Spacing))
+                                spacing = Common.StrToVal_mm(poly.Spacing);
+
+                            if (k.Layer.IsCopperLayer(layer.Number) || (poly.Layer == "41") || (poly.Layer == "42"))
                             {
-                                zone.connect_pads_clearance = isolate;
+                                k.Pcb.Zone zone = new k.Pcb.Zone();
+
+                                if (poly.Layer == "41")
+                                    zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nFront_Cu);
+                                else if (poly.Layer == "42")
+                                    zone.layer = k.LayerList.StandardLayers.GetLayerName(k.Layer.nBack_Cu);
+                                else
+                                    zone.layer = layer.Name;
+
+                                zone.net = k_net.Number;
+                                zone.net_name = k_net.Name;
+                                zone.outline_style = k.Pcb.ZoneOutlineStyle.edge;
+                                zone.hatch_pitch = 0.508f;
+                                zone.connect_pads_clearance = 0.2032f;
+                                zone.min_thickness = width; // ??
+                                zone.fill_arc_segments = 32;
+                                zone.fill_thermal_gap = 0.2032f;
+                                zone.fill_thermal_bridge_width = 0.2032f;
+                                zone.is_filled = false;
+
+                                foreach (Vertex v in poly.Vertex)
+                                {
+                                    zone.polygon.Add(StrToPoint_Board(v.X, v.Y));
+                                }
+
+                                if ((poly.Pour == PolygonPour.cutout) ||
+                                    !k.Layer.IsCopperLayer(layer.Number))
+                                {
+                                    zone.is_keepout = true;
+                                    zone.outline_style = k.Pcb.ZoneOutlineStyle.none;
+                                    zone.keepout_allow_copper_pour = Kicad_utils.Allowed.not_allowed;
+                                }
+
+                                if (!string.IsNullOrEmpty(poly.Isolate))
+                                {
+                                    zone.connect_pads_clearance = isolate;
+                                }
+
+                                if (poly.Thermals == Bool.yes)
+                                {
+                                    zone.connect_pads_mode = k.Pcb.ZonePadConnection.thermal_relief;
+                                    zone.fill_thermal_gap = width + 0.001f; // **
+                                    zone.fill_thermal_bridge_width = width + 0.001f; // **
+                                }
+                                else
+                                    zone.connect_pads_mode = k.Pcb.ZonePadConnection.yes;
+
+                                // priority on KiCad is opposite to rank
+                                zone.priority = 6 - rank;
+
+                                k_pcb.Zones.Add(zone);
                             }
-
-                            if (poly.Thermals == Bool.yes)
-                            {
-                                zone.connect_pads_mode = k.Pcb.ZonePadConnection.thermal_relief;
-                                zone.fill_thermal_gap = width + 0.001f; // **
-                                zone.fill_thermal_bridge_width = width + 0.001f; // **
-                            }
-                            else
-                                zone.connect_pads_mode = k.Pcb.ZonePadConnection.yes;
-
-                            // priority on KiCad is opposite to rank
-                            zone.priority = 6-rank;
-
-                            k_pcb.Zones.Add(zone);
                         }
                     }
 
@@ -722,94 +739,99 @@ namespace EagleConverter
                             bool attr_mirror = attrRot.Mirror;
                             int attr_angle = (int)attrRot.Rotation;
 
-                            //k.Symbol.SymbolField sym_field = null;
-                            k.ModuleDef.fp_text field = null;
-                            switch (attrib.Name)
+                            layer = ConvertLayer(attrib.Layer);
+                            if (layer != null)
                             {
-                                case "NAME":
-                                    //sym_field = k_symbol.fReference;
-                                    field = k_mod.Reference;
-                                    break;
-                                case "VALUE":
-                                    //sym_field = k_symbol.fValue;
-                                    field = k_mod.Value;
-                                    break;
 
-                                    // Part?
-                                    // voltage, current
-                            }
-
-                            if (field != null)
-                            {
-                                field.effects.font.Size = new SizeF( Common.StrToVal_mm(attrib.Size), Common.StrToVal_mm(attrib.Size));
-
-                                field.layer = ConvertLayer(attrib.Layer).Name;
-
-                                field.layer = k.Layer.MakeLayerName(k_mod.layer, field.layer);
-
-                                //field.effects.horiz_align = k.TextJustify.left;
-                                //field.effects.vert_align = k.VerticalAlign.bottom;
-
-                                SetPcbTextAttributes(field,
-                                    StrToPoint_Board(element.X, element.Y), elementRot,
-                                    StrToPoint_Board(attrib.X, attrib.Y), attrRot);
-
-                          //      AdjustPos(field);
-
-                                //debug
-                                if (pcb_debug)
+                                //k.Symbol.SymbolField sym_field = null;
+                                k.ModuleDef.fp_text field = null;
+                                switch (attrib.Name)
                                 {
-                                    PointF ptext = new PointF(field.position.At.X, field.position.At.Y);
-                                    SizeF textSize = strokeFont.GetTextSize(field.Value, field.effects);
+                                    case "NAME":
+                                        //sym_field = k_symbol.fReference;
+                                        field = k_mod.Reference;
+                                        break;
+                                    case "VALUE":
+                                        //sym_field = k_symbol.fValue;
+                                        field = k_mod.Value;
+                                        break;
 
-                                    if (elementRot.Mirror)
+                                        // Part?
+                                        // voltage, current
+                                }
+
+                                if (field != null)
+                                {
+                                    field.effects.font.Size = new SizeF(Common.StrToVal_mm(attrib.Size), Common.StrToVal_mm(attrib.Size));
+
+                                    field.layer = layer.Name;
+
+                                    field.layer = k.Layer.MakeLayerName(k_mod.layer, field.layer);
+
+                                    //field.effects.horiz_align = k.TextJustify.left;
+                                    //field.effects.vert_align = k.VerticalAlign.bottom;
+
+                                    SetPcbTextAttributes(field,
+                                        StrToPoint_Board(element.X, element.Y), elementRot,
+                                        StrToPoint_Board(attrib.X, attrib.Y), attrRot);
+
+                                    //      AdjustPos(field);
+
+                                    //debug
+                                    if (pcb_debug)
                                     {
-                                        // get bottom right
-                                        ptext.X += textSize.Width / 2;
-                                        ptext.Y += textSize.Height / 2;
+                                        PointF ptext = new PointF(field.position.At.X, field.position.At.Y);
+                                        SizeF textSize = strokeFont.GetTextSize(field.Value, field.effects);
 
-                                        ptext = ptext.Rotate(-elementRot.Rotation - 180);
-                                        ptext.Y = -ptext.Y;
+                                        if (elementRot.Mirror)
+                                        {
+                                            // get bottom right
+                                            ptext.X += textSize.Width / 2;
+                                            ptext.Y += textSize.Height / 2;
+
+                                            ptext = ptext.Rotate(-elementRot.Rotation - 180);
+                                            ptext.Y = -ptext.Y;
+                                        }
+                                        else
+                                        {
+                                            // get bottom left
+                                            ptext.X -= textSize.Width / 2;
+                                            ptext.Y += textSize.Height / 2;
+                                            ptext = ptext.Rotate(-elementRot.Rotation);
+                                        }
+
+
+                                        ptext = k_mod.position.At.Add(ptext);
+
+                                        //!DrawRect(k_pcb, ptext, textSize, -(elementRot.Rotation + field.position.Rotation));
+
+                                        // 
+                                        PointF p1 = new PointF(field.position.At.X, field.position.At.Y);
+                                        k.Pcb.gr_line k_line;
+                                        float ds = 1.27f;
+
+                                        if (elementRot.Mirror)
+                                        {
+                                            p1 = p1.Rotate(-elementRot.Rotation - 180);
+                                            p1.Y = -p1.Y;
+                                        }
+                                        else
+                                            p1 = p1.Rotate(-elementRot.Rotation);
+
+                                        //p1 = p1.Rotate(field.position.Rotation);
+                                        //p1 = p1.Rotate(k_mod.position.Rotation);
+
+
+                                        k_line = new k.Pcb.gr_line(
+                                            new PointF(k_mod.position.At.X + p1.X - ds, k_mod.position.At.Y + p1.Y),
+                                            new PointF(k_mod.position.At.X + p1.X + ds, k_mod.position.At.Y + p1.Y), "Dwgs.User", 0.01f);
+                                        k_pcb.Drawings.Add(k_line);
+
+                                        k_line = new k.Pcb.gr_line(
+                                            new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y - ds),
+                                            new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y + ds), "Dwgs.User", 0.01f);
+                                        k_pcb.Drawings.Add(k_line);
                                     }
-                                    else
-                                    {
-                                        // get bottom left
-                                        ptext.X -= textSize.Width / 2;
-                                        ptext.Y += textSize.Height / 2;
-                                        ptext = ptext.Rotate(-elementRot.Rotation);
-                                    }
-
-
-                                    ptext = k_mod.position.At.Add(ptext);
-
-                                    //!DrawRect(k_pcb, ptext, textSize, -(elementRot.Rotation + field.position.Rotation));
-
-                                    // 
-                                    PointF p1 = new PointF(field.position.At.X, field.position.At.Y);
-                                    k.Pcb.gr_line k_line;
-                                    float ds = 1.27f;
-
-                                    if (elementRot.Mirror)
-                                    {
-                                        p1 = p1.Rotate(-elementRot.Rotation-180);
-                                        p1.Y = -p1.Y;
-                                    }
-                                    else
-                                        p1 = p1.Rotate(-elementRot.Rotation);
-
-                                    //p1 = p1.Rotate(field.position.Rotation);
-                                    //p1 = p1.Rotate(k_mod.position.Rotation);
-
-
-                                    k_line = new k.Pcb.gr_line(
-                                        new PointF(k_mod.position.At.X + p1.X - ds, k_mod.position.At.Y + p1.Y),
-                                        new PointF(k_mod.position.At.X + p1.X + ds, k_mod.position.At.Y + p1.Y), "Dwgs.User", 0.01f);
-                                    k_pcb.Drawings.Add(k_line);
-
-                                    k_line = new k.Pcb.gr_line(
-                                        new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y - ds),
-                                        new PointF(k_mod.position.At.X + p1.X, k_mod.position.At.Y + p1.Y + ds), "Dwgs.User", 0.01f);
-                                    k_pcb.Drawings.Add(k_line);
                                 }
                             }
                         }

@@ -303,6 +303,7 @@ namespace EagleConverter
         public bool ConvertLibrary (string LibName, Library lib, List<Layer> layers, string OutputFolder, bool WriteLibFile)
         {
             string lib_filename;
+            k.LayerDescriptor layer;
 
             Trace("Processing Library: " + LibName);
 
@@ -330,37 +331,47 @@ namespace EagleConverter
 
                 foreach (Wire wire in package.Wire)
                 {
-                    //
-                    float curve = (float)StringUtils.StringToDouble(wire.Curve);
-                    if (curve == 0)
-                    {
-                        k.ModuleDef.fp_line k_line = new Kicad_utils.ModuleDef.fp_line(
-                            Common.StrToPointFlip_mm(wire.X1, wire.Y1),
-                            Common.StrToPointFlip_mm(wire.X2, wire.Y2),
-                            ConvertLayer(wire.Layer, package.Name).Name,
-                            Common.StrToVal_mm(wire.Width));
-                        k_module.Borders.Add(k_line);
-                    }
-                    else
-                    {
-                        PointF start = Common.StrToPointFlip_mm(wire.X1, wire.Y1);
-                        PointF end = Common.StrToPointFlip_mm(wire.X2, wire.Y2);
-                        float arc_start, arc_end, radius;
-                        PointF center = Common.kicad_arc_center(start, end, curve, out radius, out arc_start, out arc_end);
+                    layer = ConvertLayer(wire.Layer, package.Name);
 
-                        k.ModuleDef.fp_arc k_arc = new k.ModuleDef.fp_arc(
-                            center, start,
-                            -curve,
-                            ConvertLayer(wire.Layer, package.Name).Name,
-                            Common.StrToVal_mm(wire.Width));
+                    if (layer != null)
+                    {
+                        //
+                        float curve = (float)StringUtils.StringToDouble(wire.Curve);
+                        if (curve == 0)
+                        {
+                            k.ModuleDef.fp_line k_line = new Kicad_utils.ModuleDef.fp_line(
+                                Common.StrToPointFlip_mm(wire.X1, wire.Y1),
+                                Common.StrToPointFlip_mm(wire.X2, wire.Y2),
+                                layer.Name,
+                                Common.StrToVal_mm(wire.Width));
+                            k_module.Borders.Add(k_line);
+                        }
+                        else
+                        {
+                            PointF start = Common.StrToPointFlip_mm(wire.X1, wire.Y1);
+                            PointF end = Common.StrToPointFlip_mm(wire.X2, wire.Y2);
+                            float arc_start, arc_end, radius;
+                            PointF center = Common.kicad_arc_center(start, end, curve, out radius, out arc_start, out arc_end);
 
-                        k_module.Borders.Add(k_arc);
+                            k.ModuleDef.fp_arc k_arc = new k.ModuleDef.fp_arc(
+                                center, start,
+                                -curve,
+                                layer.Name,
+                                Common.StrToVal_mm(wire.Width));
+
+                            k_module.Borders.Add(k_arc);
+                        }
                     }
                 }
 
                 foreach (Smd smd in package.Smd)
                 {
-                    k.ModuleDef.pad k_pad = new k.ModuleDef.pad(smd.Name, "smd", "rect", Common.StrToPointFlip_mm(smd.X, smd.Y), Common.StrToSize_mm(smd.Dx, smd.Dy), 0);
+                    float roundness = Common.StrToVal(smd.Roundness, 0);
+                    string shape = "rect";
+                    if (roundness == 100)
+                        shape = "oval";
+
+                    k.ModuleDef.pad k_pad = new k.ModuleDef.pad(smd.Name, "smd", shape, Common.StrToPointFlip_mm(smd.X, smd.Y), Common.StrToSize_mm(smd.Dx, smd.Dy), 0);
 
                     if (Common.GetAngle(smd.Rot) % 180 == 90)
                         k_pad.size = Common.StrToSize_mm(smd.Dy, smd.Dx);
@@ -408,80 +419,117 @@ namespace EagleConverter
 
                 foreach (Text text in package.Text)
                 {
-                    k.ModuleDef.fp_text k_text = new k.ModuleDef.fp_text("ref", text.mText,
-                        Common.StrToPointFlip_mm(text.X, text.Y),
-                        ConvertLayer(text.Layer, package.Name).Name,
-                        new SizeF(Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
-                        Common.GetTextThickness_mm(text),
-                        true);
+                    PointF pos = Common.StrToPointFlip_mm(text.X, text.Y);
 
-                    ExtRotation rot = ExtRotation.Parse(text.Rot);
-                    //k_text.RotateBy(rot.Rotation);
-                    k_text.position.Rotation = rot.Rotation;
+                    layer = ConvertLayer(text.Layer, package.Name);
 
-                    // adjust position for center, center alignment
-
-                    SizeF textSize = strokeFont.GetTextSize(text.mText, k_text.effects);
-
-                    if (rot.Rotation % 180 == 0)
+                    if (layer != null)
                     {
-                        k_text.position.At.X += textSize.Width / 2;
-                        k_text.position.At.Y -= textSize.Height / 2;
-                    }
-                    else
-                    {
-                        k_text.position.At.X -= textSize.Height / 2;
-                        k_text.position.At.Y -= textSize.Width / 2;
-                    }
+                        k.ModuleDef.fp_text k_text = new k.ModuleDef.fp_text("ref", text.mText,
+                           pos,
+                           layer.Name,
+                            new SizeF(Common.StrToVal_mm(text.Size), Common.StrToVal_mm(text.Size)),
+                            Common.GetTextThickness_mm(text),
+                            true);
 
+                        // TODO: adjust position for center, center alignment
+                        ExtRotation rot = ExtRotation.Parse(text.Rot);
+                        SizeF textSize = strokeFont.GetTextSize(text.mText, k_text.effects);
 
-                    //k_text.effects.horiz_align = k.TextJustify.left;
+                        k_text.position.At = Common.GetTextPos(pos, textSize, rot, text.Align, Align.bottom_left);
+                        k_text.position.Rotation = rot.Rotation;
+                        k_text.effects.vert_align = k.VerticalAlign.bottom;
+                        k_text.effects.horiz_align = k.TextJustify.left;
+                        if (rot.Mirror)
+                            k_text.effects.mirror = true;
 
-                    if (text.mText.StartsWith(">"))
-                    {
-                        string t = text.mText.ToUpperInvariant();
-
-                        if (t.Contains("NAME") || t.Contains("PART"))
+                        if (text.mText.StartsWith(">"))
                         {
-                            k_text.Type = "reference";
-                            k_module.Reference = k_text;
+                            string t = text.mText.ToUpperInvariant();
+
+                            if (t.Contains("NAME") || t.Contains("PART"))
+                            {
+                                k_text.Type = "reference";
+                                k_module.Reference = k_text;
+                            }
+                            else if (t.Contains("VALUE"))
+                            {
+                                k_text.Type = "value";
+                                k_module.Value = k_text;
+                            }
+                            // user field ?
                         }
-                        else if (t.Contains("VALUE"))
+                        else
                         {
-                            k_text.Type = "value";
-                            k_module.Value = k_text;
+                            k_text.Type = "user";
+                            k_module.UserText.Add(k_text);
                         }
-                        // user field ?
-                    }
-                    else
-                    {
-                        k_text.Type = "user";
-                        k_module.UserText.Add(k_text);
                     }
                 }
 
                 foreach (EagleImport.Rectangle rect in package.Rectangle)
                 {
-                    RectangleF r = Common.ConvertRect_mm(rect.X1, rect.Y1, rect.X2, rect.Y2, rect.Rot);
-                    List<PointF> poly = Common.RectToPoly(r);
-                    
-                    k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(
-                        poly,
-                        ConvertLayer(rect.Layer, package.Name).Name,
-                        0.01f   // width?
-                        );
-                    k_module.Borders.Add(k_poly);
+                    layer = ConvertLayer(rect.Layer, package.Name);
+
+                    if (layer != null)
+                    {
+                        RectangleF r = Common.ConvertRect_mm(rect.X1, rect.Y1, rect.X2, rect.Y2, rect.Rot);
+                        List<PointF> poly = Common.RectToPoly(r);
+
+                        k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(
+                            poly,
+                            layer.Name,
+                            0   // width?
+                            );
+                        k_module.Borders.Add(k_poly);
+                    }
                 }
 
                 foreach (Circle circle in package.Circle)
                 {
-                    k.ModuleDef.fp_circle k_circle = new Kicad_utils.ModuleDef.fp_circle(
-                        Common.StrToPointFlip_mm(circle.X, circle.Y),
-                        Common.StrToVal_mm(circle.Radius),
-                        ConvertLayer(circle.Layer, package.Name).Name,
-                        Common.StrToVal_mm(circle.Width)
-                        );
-                    k_module.Borders.Add(k_circle);
+                    layer = ConvertLayer(circle.Layer, package.Name);
+
+                    if (layer != null)
+                    {
+                        float width = 0;
+                        if (!string.IsNullOrEmpty(circle.Width))
+                            width = Common.StrToVal_mm(circle.Width);
+
+                        // if width == 0 convert to poly
+
+                        if (width == 0)
+                        {
+                            PointF center = Common.StrToPointFlip_mm(circle.X, circle.Y);
+                            float radius = Common.StrToVal_mm(circle.Radius);
+
+                            List<PointF> pts = new List<PointF>();
+
+                            int n_segments = 360 / 15;
+                            int j = 0;
+                            float step = 15;
+                            while (j < n_segments)
+                            {
+                                float angle = MathUtil.DegToRad(j * step);
+                                PointF p = new PointF((float)(center.X + Math.Cos(angle) * radius),
+                                    (float)(center.Y + Math.Sin(angle) * radius));
+                                pts.Add(p);
+                                j++;
+                            }
+
+                            k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(pts, layer.Name, width);
+                            k_module.Borders.Add(k_poly);
+                        }
+                        else
+                        {
+                            k.ModuleDef.fp_circle k_circle = new Kicad_utils.ModuleDef.fp_circle(
+                                Common.StrToPointFlip_mm(circle.X, circle.Y),
+                                Common.StrToVal_mm(circle.Radius),
+                                layer.Name,
+                                Common.StrToVal_mm(circle.Width)
+                                );
+                            k_module.Borders.Add(k_circle);
+                        }
+                    }
                 }
 
                 foreach (Hole hole in package.Hole)
@@ -497,16 +545,65 @@ namespace EagleConverter
 
                 foreach (EagleImport.Polygon poly in package.Polygon)
                 {
-                    Cad2D.Polygon poly_2d = new Cad2D.Polygon();
+                    layer = ConvertLayer(poly.Layer, package.Name);
 
-                    foreach (Vertex v in poly.Vertex)
+                    if (layer != null)
                     {
-                        PointF p = Common.StrToPointFlip_mm(v.X, v.Y);
-                        poly_2d.AddVertex(p.X, p.Y);
-                    }
+                        float width = 0;
+                        if (!string.IsNullOrEmpty(poly.Width))
+                            width = Common.StrToVal_mm(poly.Width);
 
-                    k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(poly_2d, ConvertLayer(poly.Layer, package.Name).Name, 0.12f);
-                    k_module.Borders.Add(k_poly);
+                        int index = 0;
+
+                        if (poly.Vertex.Count > 0)
+                        {
+                            List<PointF> pts = new List<PointF>();
+
+                            PointF p1 = Common.StrToPoint_mm(poly.Vertex[index].X, poly.Vertex[index].Y);
+                            float curve1 = (float)StringUtils.StringToDouble(poly.Vertex[index].Curve);
+                            index++;
+
+                            pts.Add(p1.FlipX());
+
+                            while (index <= poly.Vertex.Count)
+                            {
+                                PointF p2 = Common.StrToPoint_mm(poly.Vertex[index % poly.Vertex.Count].X, poly.Vertex[index % poly.Vertex.Count].Y);
+
+                                if (curve1 == 0)
+                                {
+                                    if (index < poly.Vertex.Count)
+                                        pts.Add(p2.FlipX());
+                                }
+                                else
+                                {
+                                    float arc_start, arc_end, radius;
+                                    PointF center = Common.kicad_arc_center2(p1, p2, curve1, out radius, out arc_start, out arc_end);
+
+                                    if (arc_end < arc_start)
+                                        arc_end += 360;
+
+                                    int n_segments = (int)((Math.Abs(arc_end - arc_start) + 7.5f) / 15f);
+                                    int j = 1;
+                                    float step = (arc_end - arc_start) / n_segments;
+                                    while (j <= n_segments)
+                                    {
+                                        float angle = MathUtil.DegToRad(arc_start + j * step);
+                                        PointF p = new PointF((float)(center.X + Math.Cos(angle) * radius),
+                                            (float)(center.Y + Math.Sin(angle) * radius));
+                                        pts.Add(p.FlipX());
+                                        j++;
+                                    }
+                                }
+                                p1 = p2;
+                                if (index < poly.Vertex.Count)
+                                    curve1 = (float)StringUtils.StringToDouble(poly.Vertex[index].Curve);
+                                index++;
+                            }
+
+                            k.ModuleDef.fp_polygon k_poly = new Kicad_utils.ModuleDef.fp_polygon(pts, layer.Name, width);
+                            k_module.Borders.Add(k_poly);
+                        }
+                    }
                 }
 
                 //

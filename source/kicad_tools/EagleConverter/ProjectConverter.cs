@@ -90,8 +90,11 @@ namespace EagleConverter
         47 Measures         Measures
         48 Document         General documentation
         49 Reference        Reference marks
+
         51 tDocu            Part documentation, top side
         52 bDocu            Part documentation, bottom side
+
+        90 Modules          ?
 
         Schematic
         ---------
@@ -109,6 +112,8 @@ namespace EagleConverter
 
         */
 
+        List<string> KnownErrors = new List<string>();
+
         //
         public k.LayerDescriptor ConvertLayer(List<Layer> LayerList, string number, string message = "")
         {
@@ -121,99 +126,105 @@ namespace EagleConverter
 
             if (layer == null)
             {
-                switch (number)
-                {
-                    case "160": result.Name = "Eco1.User"; break;
-                    case "161": result.Name = "Eco2.User"; break;
-                }
 
                 Trace(string.Format("warning: layer not found: {0}", number));
-                result.Name = "Cmts.User";
+                return null;
             }
             else
             {
-                switch (layer.Name)
+                switch (number)
                 {
-                    // 1
-                    case "Top":
-                    case "tCopper":
-                        result.Name = "F.Cu";              // or Top
-                        break;
-                    // 16
-                    case "Bottom":
-                    case "bCopper":
-                        result.Name = "B.Cu";           // or Bottom
-                        break;
+                    case "1": result.Name = "F.Cu"; break;
 
-                    // 20
-                    case "Dimension": result.Name = "Edge.Cuts"; break;  // or edge?
+                    case "2": result.Name = "Inner1.Cu"; break;
+                    case "3": result.Name = "Inner2.Cu"; break;
+                    case "4": result.Name = "Inner3.Cu"; break;
+                    case "5": result.Name = "Inner4.Cu"; break;
+                    case "6": result.Name = "Inner5.Cu"; break;
+                    case "7": result.Name = "Inner6.Cu"; break;
+                    case "8": result.Name = "Inner7.Cu"; break;
+                    case "9": result.Name = "Inner8.Cu"; break;
+                    case "10": result.Name = "Inner9.Cu"; break;
+                    case "11": result.Name = "Inner10.Cu"; break;
+                    case "12": result.Name = "Inner11.Cu"; break;
+                    case "13": result.Name = "Inner12.Cu"; break;
+                    case "14": result.Name = "Inner13.Cu"; break;
+                    case "15": result.Name = "Inner14.Cu"; break;
 
-                    // 21
-                    case "tPlace": result.Name = "F.SilkS"; break;
-                    // 22
-                    case "bPlace": result.Name = "B.SilkS"; break;
+                    case "16": result.Name = "B.Cu"; break;
 
-                    // 25
-                    case "tNames": result.Name = "F.SilkS"; break; // or Fab?
-                    // 26
-                    case "bNames": result.Name = "B.SilkS"; break;
+                    // Dimension
+                    case "20": result.Name = "Edge.Cuts"; break;
 
-                    // 27
-                    case "tValues": result.Name = "F.SilkS"; break;
-                    // 28
-                    case "bValues": result.Name = "B.SilkS"; break;
+                    // tPlace
+                    case "21": result.Name = "F.SilkS"; break;
+                    // bPlace
+                    case "22": result.Name = "B.SilkS"; break;
 
-                    // 29
-                    case "tStop": result.Name = "F.Mask"; break;
-                    // 30
-                    case "bStop": result.Name = "B.Mask"; break;
+                    //  tNames
+                    case "25": result.Name = "F.SilkS"; break; // or Fab?
+                    //  bNames
+                    case "26": result.Name = "B.SilkS"; break;
 
-                    // 31
-                    case "tCream": result.Name = "F.Paste"; break;
-                    // 32
-                    case "bCream": result.Name = "B.Paste"; break;
+                    //  tValues
+                    case "27": result.Name = "F.SilkS"; break;
+                    //  bValues
+                    case "28": result.Name = "B.SilkS"; break;
 
-                    // 33
-                    case "tFinish": result.Name = "F.Mask"; break;
-                    // 34
-                    case "bFinish": result.Name = "B.Mask"; break;
+                    //  tStop
+                    case "29": result.Name = "F.Mask"; break;
+                    //  bStop
+                    case "30": result.Name = "B.Mask"; break;
 
-                    // 35
-                    case "tGlue": result.Name = "F.Adhes"; break;
-                    // 36
-                    case "bGlue": result.Name = "B.Adhes"; break;
+                    //  tCream
+                    case "31": result.Name = "F.Paste"; break;
+                    //  bCream
+                    case "32": result.Name = "B.Paste"; break;
 
-                    // 39
-                    case "tKeepout": result.Name = "F.CrtYd"; break;
-                    // 40
-                    case "bKeepout": result.Name = "B.CrtYd"; break;
+                    //  tFinish
+                    case "33": result.Name = "F.Mask"; break;
+                    //  bFinish
+                    case "34": result.Name = "B.Mask"; break;
 
-                    // -> clearance?
-                    // 41
-                    case "tRestrict": result.Name = "Dwgs.User"; break;
-                    // 42
-                    case "bRestrict": result.Name = "Dwgs.User"; break;
-                    // 43
-                    case "vRestrict": result.Name = "Dwgs.User"; break;
+                    //  tGlue
+                    case "35": result.Name = "F.Adhes"; break;
+                    //  bGlue
+                    case "36": result.Name = "B.Adhes"; break;
 
-                    // 46
-                    case "Milling": result.Name = "Dwgs.User"; break; // edge?
+                    //  tKeepout
+                    case "39": result.Name = "F.CrtYd"; break;
+                    //  bKeepout
+                    case "40": result.Name = "B.CrtYd"; break;
 
-                    // 48 - Document
+                    // tRestrict
+                    case "41": result.Name = "Dwgs.User"; break;
+                    // bRestrict
+                    case "42": result.Name = "Dwgs.User"; break;
+                    // vRestrict
+                    case "43": result.Name = "Dwgs.User"; break;
 
-                    // 49 - Reference
-                    case "ReferenceLC": result.Name = "Cmts.User"; break;
-                    // 50 - ?
-                    case "ReferenceLS": result.Name = "Cmts.User"; break;
+                    // Milling
+                    case "46": result.Name = "Dwgs.User"; break; // edge?
 
-                    // 51
-                    case "tDocu": result.Name = "F.Fab"; break;
-                    // 52
-                    case "bDocu": result.Name = "B.Fab"; break;
+                    // Document
+                    case "48": result.Name = "F.Fab"; break;
+
+                    // Reference
+                    case "49": result.Name = "F.Fab"; break;
+
+                    //  tDocu
+                    case "51": result.Name = "F.Fab"; break;
+                    //  bDocu
+                    case "52": result.Name = "B.Fab"; break;
 
                     default:
-                        Trace(string.Format("warning: layer not found: {0} {1} {2}", message, number, layer.Name));
-                        result.Name = "Cmts.User";
+
+                        if (KnownErrors.Find(x => x == number+message) == null)
+                        {
+                            Trace(string.Format("warning: unsupported layer: {0} {1} in {2}", number, layer.Name, message));
+                            KnownErrors.Add(number+message);
+                        }
+                        return null;
                         break;
                 }
             }

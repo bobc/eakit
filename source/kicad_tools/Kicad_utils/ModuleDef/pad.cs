@@ -18,6 +18,12 @@ namespace Kicad_utils.ModuleDef
         public static string through_hole = "thru_hole";
         public static string nonplated_hole = "np_thru_hole";
 
+        public static string shape_circle = "circle";
+        public static string shape_rect = "rect";
+        public static string shape_oval = "oval";
+        public static string shape_trapezoid = "trapezoid";
+
+        //
         public string number; // pin number or name
 
         // thru_hole
@@ -61,6 +67,7 @@ namespace Kicad_utils.ModuleDef
 
         public pad()
         {
+            this._layers = new LayerList();
         }
 
         public pad(string number, string type, string shape, PointF at, SizeF size, float drill)
@@ -71,7 +78,7 @@ namespace Kicad_utils.ModuleDef
             this.position = new Position (at);
             this.size = size;
             this.drill = new Drill(drill);
-
+            this._layers = new LayerList();
             set_layers();
         }
 
@@ -151,7 +158,7 @@ namespace Kicad_utils.ModuleDef
                 result.Items.Add(drill.GetSExpression());
 
             if (_layers != null)
-                result.Items.Add(new SExpression("layers", _layers.ToString()));
+                result.Items.Add(_layers.GetSExpression());
 
             if (net != null)
                 result.Items.Add(net.GetSExpression());

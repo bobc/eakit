@@ -55,6 +55,24 @@ namespace EagleConverter
             return result;
         }
 
+
+        public static float StrToVal(string s, float _default = 0)
+        {
+            float result;
+            if (!float.TryParse(s, out result))
+                result = _default;
+            return result;
+        }
+
+        public static float StrToInt(string s, int  _default = 0)
+        {
+            int result;
+            if (!int.TryParse(s, out result))
+                result = _default;
+            return result;
+        }
+
+
         //NB works in mm
         public static float RoundToGrid(float x, float align)
         {
@@ -133,9 +151,49 @@ namespace EagleConverter
             );
 
             radius = (float)Math.Sqrt(dist * dist + (dlen / 2) * (dlen / 2));
+
             arc_start = (float)Math.Atan2(start.Y - center.Y, start.X - center.X);
-            arc_start = MathUtil.RadToDeg(arc_start);
             arc_end = (float)Math.Atan2(end.Y - center.Y, end.X - center.X);
+
+            arc_start = MathUtil.RadToDeg(arc_start);
+            arc_end = MathUtil.RadToDeg(arc_end);
+
+            return center;
+        }
+
+        public static PointF kicad_arc_center2(PointF start, PointF end, double angle, out float radius, out float arc_start, out float arc_end)
+        {
+            // Eagle give us start and end.
+            // S_ARC wants start to give the center, and end to give the start.
+            double dx = end.X - start.X;
+            double dy = end.Y - start.Y;
+
+            PointF mid = new PointF((float)(start.X + dx / 2), (float)(start.Y + dy / 2));
+
+            double dlen = Math.Sqrt(dx * dx + dy * dy);
+            double dist = dlen / (2 * Math.Tan(MathUtil.DegToRad(Math.Abs(angle)) / 2));
+
+            PointF center;
+            
+            center = new PointF(
+                (float)(mid.X + dist * (dy / dlen)),
+                (float)(mid.Y - dist * (dx / dlen))
+            );
+
+            radius = (float)Math.Sqrt(dist * dist + (dlen / 2) * (dlen / 2));
+
+//            if (angle > 0)
+            {
+                arc_start = (float)Math.Atan2(start.Y - center.Y, start.X - center.X);
+                arc_end = (float)Math.Atan2(end.Y - center.Y, end.X - center.X);
+            }
+            //else
+            //{
+            //    arc_start = (float)Math.Atan2(center.Y - start.Y, center.X - start.X);
+            //    arc_end = (float)Math.Atan2(center.Y - end.Y, center.X - end.X);
+            //}
+
+            arc_start = MathUtil.RadToDeg(arc_start);
             arc_end = MathUtil.RadToDeg(arc_end);
 
             return center;
@@ -147,10 +205,13 @@ namespace EagleConverter
         {
             if (!string.IsNullOrEmpty(s))
             {
-                //todo: other chars?
+                // todo: other chars?
                 // special chars not at start?
-                s = s.Replace("\"", "_");   //todo: mapping
-                s = s.Replace("!", "~");   //todo: what if ~ already there?
+                s = s.Replace("\"", "_");   //todo: mapping ?
+
+                s = s.Replace("~", "~~");
+
+                s = s.Replace("!", "~");
                 return s;
             }
             return s;
@@ -228,6 +289,90 @@ namespace EagleConverter
             return StrToVal_mm(textSize) * int.Parse(ratio) / 100f;
         }
 
+
+        public static float FlipAngleY(float angle)
+        {
+            float result;
+
+            if (angle < 180)
+                result = 180 - angle;
+            else
+                result = 360 - angle + 180;
+            return MathUtil.NormalizeAngle(result);
+        }
+
+        public static PointF GetOffset(Align align, SizeF textSize)
+        {
+            PointF offset = new PointF(0, 0);
+            switch (align)
+            {
+                case Align.bottom_left:
+                    offset = new PointF(0, 0);
+                    break;
+                case Align.bottom_center:
+                    offset = new PointF(textSize.Width / 2, 0);
+                    break;
+                case Align.bottom_right:
+                    offset = new PointF(textSize.Width, 0);
+                    break;
+
+                case Align.center_left:
+                    offset = new PointF(0, textSize.Height / 2);
+                    break;
+                case Align.center:
+                    offset = new PointF(textSize.Width / 2, textSize.Height / 2);
+                    break;
+                case Align.center_right:
+                    offset = new PointF(textSize.Width, textSize.Height / 2);
+                    break;
+
+                case Align.top_left:
+                    offset = new PointF(0, textSize.Height);
+                    break;
+                case Align.top_center:
+                    offset = new PointF(textSize.Width / 2, textSize.Height);
+                    break;
+                case Align.top_right:
+                    offset = new PointF(textSize.Width, textSize.Height);
+                    break;
+            }
+            return offset;
+        }
+
+        public static PointF GetTextPos(PointF pos, SizeF textSize, ExtRotation rot, Align align_from, Align align_to)
+        {
+            PointF p1 = pos;
+            PointF offset;
+
+            offset = GetOffset(align_from, textSize);
+            if (rot.Mirror)
+            {
+                if ((rot.Rotation >= 90) && (rot.Rotation < 270))
+                {
+                    offset = new PointF(offset.X - textSize.Width, offset.Y - textSize.Height);
+                }
+                offset = offset.Rotate(-FlipAngleY(rot.Rotation));
+                p1 = new PointF(pos.X - offset.X, pos.Y - offset.Y);
+
+                rot.Rotation = FlipAngleY(rot.Rotation);
+            }
+            else
+            {
+                // ************** this works don't change it! **************
+                if ((rot.Rotation > 90) && (rot.Rotation <= 270))
+                {
+                    offset = new PointF(offset.X - textSize.Width, offset.Y - textSize.Height);
+                }
+                p1 = new PointF(pos.X - offset.X, pos.Y + offset.Y);
+                p1 = p1.RotateAt(pos, -rot.Rotation);
+                // ************** this works don't change it! **************
+            }
+
+            // result = p1;
+            // TODO: align_to 
+
+            return p1;
+        }
 
     }
 }

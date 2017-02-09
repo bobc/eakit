@@ -152,6 +152,22 @@ namespace Kicad_utils
             }
         }
 
+        public SExpression GetSExpression()
+        {
+            SExpression result = new SExpression();
+
+            result.Name = "layers";
+
+            result.Items = new List<SNodeBase>();
+
+            string[] temp = ToString().Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+
+            //foreach (LayerDescriptor desc in Layers)
+            foreach (string s in temp)
+                result.Items.Add(new SNodeAtom(s));
+            return result;
+        }
+
         public override string ToString()
         {
             const uint AllLayersMask = 0xffffffff;

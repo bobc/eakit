@@ -63,6 +63,12 @@ namespace Cad2D
             return new PointF(point.X, -point.Y);
         }
 
+
+        public static PointF FlipAtY(this PointF point, PointF pivot)
+        {
+            return new PointF(point.X, -point.Y);
+        }
+
         public static float DistanceBetweenPoints(PointF a, PointF b)
         {
             return (float)Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
